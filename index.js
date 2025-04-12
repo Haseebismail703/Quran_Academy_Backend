@@ -4,8 +4,8 @@ import { configDotenv } from 'dotenv'
 import Db_connection from './src/confiq/db.js'
 import route from './src/route/routes.js'
 import cookieParser from 'cookie-parser';
-import swaggerJsdoc from 'swagger-jsdoc';
-import swaggerUi from 'swagger-ui-express';
+import swaggerJsdoc from "swagger-jsdoc";
+import swaggerUi from "swagger-ui-express";
 
 configDotenv()
 
@@ -34,57 +34,63 @@ Db.once('open', () => {
 app.use('/api', route)
 app.use(cookieParser());
 
-// --- Swagger Definition ---
-const swaggerDefinition = {
-  openapi: '3.0.0',
-  info: {
-    title: 'Online Quran Academy - API Documentation',
-    version: '1.0.0',
-    description: 'API for Online Quran Academy with authentication, billing, and review routes.',
-  },
-  servers: [
-    {
-      url: `http://localhost:${PORT}`,
+const options = {
+  definition: {
+    openapi: "3.0.0",
+    info: {
+      title: "Online Quran Academy - API Documentation",
+      version: "1.0.0",
+      description: "This is the official API documentation for the Online Quran Academy platform, covering authentication, billing, and reviews.",
     },
-    {
-      url: 'https://quran-academy-backend.vercel.app',
-    }
-  ],
-  components: {
-    securitySchemes: {
-      bearerAuth: {
-        type: 'http',
-        scheme: 'bearer',
-        bearerFormat: 'JWT',
+    servers: [
+      {
+        url: `http://localhost:${process.env.PORT}`,
+      },
+      {
+        url: "https://quran-academy-backend.vercel.app",
+      },
+    ],
+    components: {
+      securitySchemes: {
+        bearerAuth: {
+          type: "http",
+          scheme: "bearer",
+          bearerFormat: "JWT",
+        },
       },
     },
+    security: [
+      {
+        bearerAuth: [],
+      },
+    ],
   },
-  security: [
-    {
-      bearerAuth: [],
-    },
-  ],
-};
-
-// --- Swagger Options ---
-const options = {
-  definition: swaggerDefinition,
   apis: [
     './src/controler/authController.js',
-    './src/SwagerDoc/auth.swagger.js',
-    './src/controler/billingControler.js',
+     './src/SwagerDoc/auth.swagger.js',
+      './src/controler/billingControler.js',
     './src/SwagerDoc/billing.swagger.js',
-    './src/controler/reviewController.js',
-    './src/SwagerDoc/review.swagger.js'
+         './src/controler/reviewController.js',
+        './src/SwagerDoc/review.swagger.js'
   ],
 };
 
-// --- Initialize Swagger ---
 const swaggerSpec = swaggerJsdoc(options);
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
-// --- Server Start ---
+const setupSwagger = (app) => {
+  app.use(
+    "/docs",
+    swaggerUi.serve,
+    swaggerUi.setup(swaggerSpec, {
+      customCssUrl:
+        "https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.18.2/swagger-ui.min.css",
+      customJs:
+        "https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.18.2/swagger-ui-bundle.min.js",
+    })
+  );
+};
+setupSwagger(app);
+
 app.listen(PORT, () => {
   console.log(`Server running at http://localhost:${PORT}`);
-  console.log(`Swagger Docs at http://localhost:${PORT}/api-docs`);
 });
