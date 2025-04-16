@@ -25,7 +25,7 @@ const userSchema = new Schema({
         type: Schema.Types.String,
         required: true,
         default : 'user',
-        enum: ['user', 'admin']
+        enum: ['student', 'admin','teacher']
     },
     gender: {
         type: Schema.Types.String,
