@@ -9,12 +9,17 @@ configDotenv()
 
 const signupUser = async (req, res) => {
     try {
-        const { firstName, email } = req.body;
+        const { firstName, email, role } = req.body;
 
         // Check if user already exists
         const existingUser = await User.findOne({ email });
         if (existingUser) {
             return res.status(400).json({ message: "Email already registered" });
+        }
+        // check Name already registered
+        const existingUserName = await User.findOne({ firstName });
+        if (existingUserName) {
+            return res.status(400).json({ message: "Name already registered" });
         }
 
         let generatedPassword;
@@ -33,7 +38,7 @@ const signupUser = async (req, res) => {
         const hashedPassword = await bcrypt.hash(generatedPassword, 10);
 
         // Create user
-        const newUser = new User({ firstName, email, password: hashedPassword });
+        const newUser = new User({ firstName, email, password: hashedPassword, role });
         await newUser.save();
 
         // Prepare minimal user data to include in the JWT payload
@@ -82,7 +87,6 @@ const signupUser = async (req, res) => {
         res.status(500).json({ message: "Internal Server Error" });
     }
 };
-
 // signin api 
 let signinUser = async (req, res) => {
     const { email, password } = req.body;

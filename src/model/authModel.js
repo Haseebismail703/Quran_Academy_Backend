@@ -24,12 +24,22 @@ const userSchema = new Schema({
     role: {
         type: Schema.Types.String,
         required: true,
-        default : 'user',
-        enum: ['student', 'admin','teacher']
+        default: 'student',
+        enum: ['student', 'admin', 'teacher']
     },
     gender: {
         type: Schema.Types.String,
         default: 'not selected'
+    },
+    status: {
+        type: Schema.Types.String,
+        default: 'waiting',
+        enum: ['waiting', 'join']
+    },
+    packageId: {
+        type: Schema.Types.ObjectId,
+        ref: 'Packages',
+        deafult: ''
     },
 }, {
     timestamps: {
