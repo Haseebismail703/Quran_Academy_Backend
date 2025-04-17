@@ -1,8 +1,13 @@
 import mongoose from 'mongoose';
 
-let classSchema = new mongoose.Schema({
-    className: {
+let courseSchema = new mongoose.Schema({
+    courseName: {
         type: mongoose.Schema.Types.String,
+        required: true
+    },
+    shift: {
+        type: mongoose.Schema.Types.String,
+        enum: ['3 to 7 afternoon', '7 to 1 evening', '2 to 8 night'],
         required: true
     },
     teacherId: {
@@ -19,11 +24,6 @@ let classSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.String,
         default: ''
     },
-    packageId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Packages',
-        default: ''
-    },
 }, {
     timestamps: {
         createdAt: 'created_at',
@@ -31,6 +31,6 @@ let classSchema = new mongoose.Schema({
     }
 });
 
-let Class = mongoose.model('allClasses', classSchema);
+let Course = mongoose.model('Courses', courseSchema);
 
-export default Class;
+export default Course;

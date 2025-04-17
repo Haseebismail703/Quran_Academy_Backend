@@ -1,37 +1,45 @@
 import mongoose from "mongoose";
 
 let packageSchema = new mongoose.Schema({
-    packageName: {
+    courseName: {
         type: mongoose.Schema.Types.String,
         required: true
     },
-    packagePrice: {
+    coursePrice: {
         type: mongoose.Schema.Types.Number,
         required: true
     },
-    packageDuration: {
+    courseDuration: {
         type: mongoose.Schema.Types.String,
         required: true
     },
     classPerMonth: {
         type: mongoose.Schema.Types.Number,
-        default : 5
+        default: 5
     },
     classPerWeek: {
         type: mongoose.Schema.Types.Number,
-        default : 1
+        default: 1
     },
     classType: {
         type: mongoose.Schema.Types.String,
         required: true,
         default: 'One to One'
-      },
-      sessionDuration: {
+    },
+    sessionDuration: {
         type: mongoose.Schema.Types.Number,
         required: true,
         default: 30
-      },
-},{
+    },
+    studentId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Users'
+    },
+    courseId : {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'courses'
+    }
+}, {
     timestamps: {
         createdAt: 'created_at',
         updatedAt: 'updated_at'

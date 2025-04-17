@@ -8,9 +8,8 @@ const userSchema = new Schema({
         unique: true
     },
     lastName: {
-        type: Schema.Types.String,
-        unique: true,
-        deafult: ''
+        type: Schema.Types.String
+        // default: ''
     },
     email: {
         type: Schema.Types.String,
@@ -31,16 +30,34 @@ const userSchema = new Schema({
         type: Schema.Types.String,
         default: 'not selected'
     },
-    status: {
+    classLink : {
         type: Schema.Types.String,
-        default: 'waiting',
-        enum: ['waiting', 'join']
+        default: ''
     },
-    packageId: {
-        type: Schema.Types.ObjectId,
-        ref: 'Packages',
-        deafult: ''
-    },
+    
+    courses: [
+        {
+            teacherId: {
+                type: Schema.Types.ObjectId,
+                ref: 'Users', // Assuming teachers are also stored in the Users collection
+                default : null
+            },
+            courseId: {
+                type: Schema.Types.ObjectId,
+                ref: 'courses', // Assuming courses are stored in the coursees collection
+                default : null
+            },
+            status: {
+                type: Schema.Types.String,
+                default: 'waiting',
+                enum: ['waiting', 'join']
+            },
+            timing : {
+                type: Schema.Types.String,
+                default: 'not selected'
+            }
+        }
+    ]
 }, {
     timestamps: {
         createdAt: 'created_at',

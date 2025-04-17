@@ -1,7 +1,7 @@
 import Pdf from "../model/pdfModel.js";
 import cloudinary from "../confiq/cloudinary.js";
 import streamifier from "streamifier";
-import Class from '../model/classModel.js'
+import Course from '../model/courseModel.js'
 import User from "../model/authModel.js";
 let addPdf = async (req, res) => {
   try {
@@ -42,183 +42,205 @@ let addPdf = async (req, res) => {
   }
 }
 
-// create Classs
-let createClass = async (req, res) => {
+// create Course
+let createCourse = async (req, res) => {
   try {
-    const { className, teacherId, studentId, classLink, packageId } = req.body;
-    const newClass = new Class({
-      className,
+    const { courseName,shift ,teacherId, studentId, classLink } = req.body;
+    // check teacher id is valid 
+    const teacher = await User.find({_id : teacherId, role : 'teacher'});
+    if (teacher.length === 0) {
+      return res.status(404).json({ error: "Teacher not found" });
+    }
+    const newCourse = new Course({
+      courseName,
+      shift,
       teacherId,
       studentId,
       classLink,
-      packageId
     });
-    await newClass.save();
-    res.status(200).json({ message: "Class created successfully", classData: newClass });
+    await newCourse.save();
+    res.status(200).json({ message: "Course created successfully", classData: newCourse });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: "Failed to create class" });
+    res.status(500).json({ error: error.message });
   }
 }
-// get all classes in admin panel
-let getAllClasses = async (req, res) => {
+// get all Courses in admin panel
+let getAllCourses = async (req, res) => {
   try {
-    const classes = await Class.find()
+    const Courses = await Course.find()
     .populate('teacherId', 'firstName lastName email role')
-    .populate('packageId', 'packageName')
-    res.status(200).json({ classes });
+    res.status(200).json({ Courses });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: "Failed to fetch classes" });
+    res.status(500).json({ error: error.message });
   }
 }
-// add student in class 
-let addStudentToClass = async (req, res) => {
-  const { classId, studentId } = req.body;
+// add student in Courses
+let addStudentToCourse = async (req, res) => {
+  const { courseId, studentId,timing } = req.body;
   try {
-
     // Check if the student exists
     const student = await User.findById(studentId);
     if (!student) {
       return res.status(404).json({ error: "Student not found" });
     }
+   // check the role of student
+    if (student.role !== 'student') {
+      return res.status(400).json({ error: "only student allow" });
+    }
+    // check if Courses not exist 
+    const courseData = await Course.findById(courseId);
+    if (!courseData) {
+      return res.status(404).json({ error: "Course not found" });
+    }
+    // Check if the student is already in the Courses
+    if (courseData.studentId.includes(studentId)) {
+      return res.status(400).json({ error: "Student already in course" });
+    }
 
-    // check if student status join 
-    if (student.status === 'join') {
-      return res.status(400).json({ error: "Student already in class" });
-    }
-    // check if class not exist 
-    const classData = await Class.findById(classId);
-    if (!classData) {
-      return res.status(404).json({ error: "Class not found" });
-    }
-    // Check if the student is already in the class
-    if (classData.studentId.includes(studentId)) {
-      return res.status(400).json({ error: "Student already in class" });
-    }
-
-    // Add student to the class
-    classData.studentId.push(studentId);
-    await classData.save();
+    // Add student to the Courses
+    courseData.studentId.push(studentId);
+    await courseData.save();
 
     // Update the student's status to 'join'
-    student.status = 'join';
+    let courseExist = student.courses.find((course) => course.courseId.toString() === courseId);
+    if (!courseExist) {
+    return res.status(400).json({ error: "Course not found in student data" });
+    }
+    courseExist.status = 'join';
+    courseExist.timing = timing ;
     await student.save();
 
-    res.status(200).json({ message: "Student added to class", classData });
+    res.status(200).json({ message: "Student added to Course", courseData });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: "Failed to add student to class" });
+    res.status(500).json({ error: error.message });
   }
 }
-// remove student from class
-let removeStudentFromClass = async (req, res) => {
-  const { classId, studentId } = req.body;
+// remove student from course
+let removeStudentFromCourse = async (req, res) => {
+  const { courseId, studentId } = req.body;
   try {
-    const classData = await Class.findById(classId);
-    if (!classData) {
-      return res.status(404).json({ error: "Class not found" });
+    const courseData = await Course.findById(courseId);
+    if (!courseData) {
+      return res.status(404).json({ error: "Course not found" });
     }
 
-    // Check if the student is in the class
-    if (!classData.studentId.includes(studentId)) {
-      return res.status(400).json({ error: "Student not in class" });
+    // Check if the student is in the course
+    if (!courseData.studentId.includes(studentId)) {
+      return res.status(400).json({ error: "Student not in course" });
     }
 
-    // Remove student from the class
-    classData.studentId = classData.studentId.filter(id => id.toString() !== studentId);
-    await classData.save();
+    // Remove student from the course
+    courseData.studentId = courseData.studentId.filter(id => id.toString() !== studentId);
+    await courseData.save();
 
     // update the status of student to 'waiting'
     const student = await User.findById(studentId);
     if (!student) {
       return res.status(404).json({ error: "Student not found" });
     }
-    student.status = 'waiting';
-    await student.save();
-    res.status(200).json({ message: "Student removed from class", classData });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Failed to remove student from class" });
-  }
-}
-// get student by class id package name 
-let getStudentByClassId = async (req, res) => {
-  const { classId } = req.params;
-  try {
-    const classData = await Class.findById(classId)
-      .populate({
-        path: 'studentId',
-        select: 'firstName lastName email role packageId status',
-        populate: {
-          path: 'packageId',
-          select: 'packageName'
-        }
-      })
-      .populate('packageId', 'packageName');
-    if (!classData) {
-      return res.status(404).json({ error: "Class not found" });
+    let courseExist = student.courses.find((course) => course.courseId.toString() === courseId);
+    if (!courseExist) {
+      return res.status(400).json({ error: "Course not found in student data" });
     }
-    // filter by student package 
-    let students = classData.studentId.filter((student) => {
-      return student.packageId && student.packageId.packageName === classData.packageId.packageName && student.status === 'waiting' && student.role === 'student';
-    })
-    res.status(200).json({ students });
+    courseExist.status = 'waiting';
+    await student.save();
+    res.status(200).json({ message: "Student removed from course", courseData });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: "Failed to fetch students" });
+    res.status(500).json({ error: error.message });
   }
 }
-// Update classLink by class id and update
+// get student by course id package name 
+let getStudentByCourseId = async (req, res) => {
+  const { courseId } = req.params;
+
+  if (!courseId) {
+    return res.status(400).json({ message: "Invalid courseId" });
+  }
+
+  try {
+    const students = await User.find({
+      role: "student",
+      courses: {
+        $elemMatch: {
+          courseId: courseId,
+          status: "waiting"
+        }
+      }
+    })
+
+    res.status(200).json({
+      message: "Waiting students fetched successfully",
+      data: students
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Something went wrong",
+      error: error.message
+    });
+  }
+}
+// Update classLink by student id and update
 let UpdateClassLink = async (req, res) => {
-  const { classId } = req.params;
+  const { studentId } = req.params;
   const { classLink } = req.body;
   try {
-    const classData = await Class.findByIdAndUpdate(classId, { classLink }, { new: true });
-    if (!classData) {
-      return res.status(404).json({ error: "Class not found" });
+    const courseData = await User.findByIdAndUpdate(studentId, { classLink }, { new: true });
+    if (!courseData) {
+      return res.status(404).json({ error: "Student not found" });
     }
-    res.status(200).json({ message: "Class updated successfully", classData });
+    res.status(200).json({ message: "Class link update successfully", courseData });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: "Failed to update class" });
+    res.status(500).json({ error: error.message });
   }
 }
-// update class deatil 
-let updateClassDetail = async (req, res) => {
-  const { classId } = req.params;
-  const { className, teacherId, packageId } = req.body;
+// update course deatil 
+let updateCourse = async (req, res) => {
+  const { courseId } = req.params;
+  const { courseName, teacherId, shift } = req.body;
+
+  if(teacherId){
+    // check teacher id is valid 
+    const teacher = await User.find({_id : teacherId, role : 'teacher'});
+    if (teacher.length === 0) {
+      return res.status(404).json({ error: "Teacher not found" });
+    }
+  }
   try {
-    const getClass = await Class.findById(classId);
-    if (!getClass) {
+    const getCourse = await Course.findById(courseId);
+    if (!getCourse) {
       return res.status(404).json({ error: "Class not found" });
     }
 
     const updatedData = {
-      className: className || getClass.className,
-      teacherId: teacherId || getClass.teacherId,
-      packageId: packageId || getClass.packageId,
+      courseName: courseName || getCourse.courseName,
+      teacherId: teacherId || getCourse.teacherId,
+      shift: shift || getCourse.shift,
     };
 
-    const classData = await Class.findByIdAndUpdate(classId, updatedData, { new: true });
+    const classData = await Course.findByIdAndUpdate(courseId, updatedData, { new: true });
     res.status(200).json({ message: "Class updated successfully", classData });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Failed to update class" });
   }
 };
-// delete class by id
-let deleteClass = async (req, res) => {
-  const { classId } = req.params;
+// delete course by id
+let deleteCourse = async (req, res) => {
+  const { courseId } = req.params;
   try {
-    const classData = await Class.findByIdAndDelete(classId);
-    if (!classData) {
-      return res.status(404).json({ error: "Class not found" });
+    const courseData = await Course.findByIdAndDelete(courseId);
+    if (!courseData) {
+      return res.status(404).json({ error: "Course not found" });
     }
-    res.status(200).json({ message: "Class deleted successfully" });
+    res.status(200).json({ message: "Course deleted successfully" });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: "Failed to delete class" });
+    res.status(500).json({ error: error.message });
   }
 }
 // get all data waiting student  total student and total teacher 
@@ -247,13 +269,13 @@ let getAllTeacher = async (req, res) => {
 
 export {
   addPdf,
-  createClass,
-  getAllClasses,
-  addStudentToClass,
-  removeStudentFromClass,
-  getStudentByClassId,
+  createCourse,
+  getAllCourses,
+  addStudentToCourse,
+  removeStudentFromCourse,
+  getStudentByCourseId,
   getAllUserData,
   UpdateClassLink,
-  updateClassDetail,
-  deleteClass
+  updateCourse,
+  deleteCourse
 };

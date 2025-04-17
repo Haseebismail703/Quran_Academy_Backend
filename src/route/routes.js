@@ -2,9 +2,9 @@ import express from "express";
 import { signupUser, signinUser, adminLogin,updateUser, logOut } from '../controler/authController.js'
 import {creatReview,getReview} from '../controler/reviewController.js'
 import {billingAddress} from "../controler/billingControler.js"
-import {addPdf,createClass,getAllClasses,addStudentToClass,removeStudentFromClass,getAllUserData,
-    getStudentByClassId,UpdateClassLink,updateClassDetail,deleteClass} from "../controler/adminController.js"
-import {createPackage,getAllPackages} from "../controler/packageController.js"
+import {addPdf,createCourse,getAllCourses,addStudentToCourse,removeStudentFromCourse,getAllUserData,
+    getStudentByCourseId,UpdateClassLink,updateCourse,deleteCourse} from "../controler/adminController.js"
+import {createPackage,getAllPackages,getPackageByStudentId,buyPackage} from "../controler/packageController.js"
 import multer from 'multer'
 const router = express.Router();
 
@@ -24,19 +24,20 @@ router.get('/getReview/:packageId', getReview);
 router.post('/createBillingAdress',billingAddress )
 // admin routes
 router.post('/addPdf',upload.single('pdf') ,addPdf);
-router.post('/createClass' ,createClass);
-router.get('/getClass', getAllClasses);
+router.post('/createCourse' ,createCourse);
+router.get('/getAllCourses', getAllCourses);
 router.get('/getAllUserData', getAllUserData);
-router.get('/getStudentByClassId/:classId', getStudentByClassId);
-router.post('/addStudentToClass', addStudentToClass);
-router.post('/removeStudentFromClass', removeStudentFromClass);
-router.put('/UpdateClassLink/:classId', UpdateClassLink);
-router.put('/updateClassDetail/:classId', updateClassDetail);
-router.delete('/deleteClass/:classId', deleteClass);
+router.get('/getStudentByCourseId/:courseId', getStudentByCourseId);
+router.post('/addStudentToCourse', addStudentToCourse);
+router.post('/removeStudentFromCourse', removeStudentFromCourse);
+router.put('/UpdateClassLink/:studentId', UpdateClassLink);
+router.put('/updateCourse/:courseId', updateCourse);
+router.delete('/deleteCourse/:courseId', deleteCourse);
 // Package routes
 router.post('/createPackage', createPackage);
 router.get('/getAllPackages', getAllPackages);
-
+router.get('/getPackageByStudentId/:studentId', getPackageByStudentId);// get package by student id in student panel 
+router.post('/buyPackage', buyPackage);
 export default router
 
 

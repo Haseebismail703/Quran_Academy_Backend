@@ -84,7 +84,7 @@ const signupUser = async (req, res) => {
         res.status(200).json({ message: "User registered, password sent to email", token });
     } catch (error) {
         console.error("Signup Error:", error);
-        res.status(500).json({ message: "Internal Server Error" });
+        res.status(500).json({ message: error.message });
     }
 };
 // signin api 
