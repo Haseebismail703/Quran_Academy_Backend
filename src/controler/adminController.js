@@ -243,6 +243,20 @@ let deleteCourse = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 }
+// get Course using teacher id  
+let getCourseByTeacherId = async (req, res) => {
+  const { teacherId } = req.params;
+  try {
+    const courses = await Course.find({ teacherId }).populate('studentId', 'firstName lastName email role');
+    if (!courses) {
+      return res.status(404).json({ error: "Courses not found" });
+    }
+    res.status(200).json({ message: "Courses fetched successfully", courses });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+}
 // get all data waiting student  total student and total teacher 
 let getAllUserData = async (req, res) => {
   try {
@@ -277,5 +291,6 @@ export {
   getAllUserData,
   UpdateClassLink,
   updateCourse,
-  deleteCourse
+  deleteCourse,
+  getCourseByTeacherId
 };

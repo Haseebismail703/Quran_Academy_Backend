@@ -3,7 +3,7 @@ import { signupUser, signinUser, adminLogin,updateUser, logOut } from '../contro
 import {creatReview,getReview} from '../controler/reviewController.js'
 import {billingAddress} from "../controler/billingControler.js"
 import {addPdf,createCourse,getAllCourses,addStudentToCourse,removeStudentFromCourse,getAllUserData,
-    getStudentByCourseId,UpdateClassLink,updateCourse,deleteCourse} from "../controler/adminController.js"
+    getStudentByCourseId,UpdateClassLink,updateCourse,deleteCourse,getCourseByTeacherId} from "../controler/adminController.js"
 import {createPackage,getAllPackages,getPackageByStudentId,buyPackage} from "../controler/packageController.js"
 import multer from 'multer'
 const router = express.Router();
@@ -21,7 +21,7 @@ router.post('/creatReview', creatReview);
 router.get('/getReview/:packageId', getReview);
 
 // Billing Route 
-router.post('/createBillingAdress',billingAddress )
+router.post('/createBillingAdress',billingAddress);
 // admin routes
 router.post('/addPdf',upload.single('pdf') ,addPdf);
 router.post('/createCourse' ,createCourse);
@@ -31,6 +31,7 @@ router.get('/getStudentByCourseId/:courseId', getStudentByCourseId);
 router.post('/addStudentToCourse', addStudentToCourse);
 router.post('/removeStudentFromCourse', removeStudentFromCourse);
 router.put('/UpdateClassLink/:studentId', UpdateClassLink);
+router.get('/getCourseByTeacherId/:teacherId', getCourseByTeacherId);
 router.put('/updateCourse/:courseId', updateCourse);
 router.delete('/deleteCourse/:courseId', deleteCourse);
 // Package routes
@@ -38,6 +39,7 @@ router.post('/createPackage', createPackage);
 router.get('/getAllPackages', getAllPackages);
 router.get('/getPackageByStudentId/:studentId', getPackageByStudentId);// get package by student id in student panel 
 router.post('/buyPackage', buyPackage);
+// Notification routes
 export default router
 
 
