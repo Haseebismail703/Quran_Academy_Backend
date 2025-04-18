@@ -1,46 +1,5 @@
-import Pdf from "../model/pdfModel.js";
-import cloudinary from "../confiq/cloudinary.js";
-import streamifier from "streamifier";
 import Course from '../model/courseModel.js'
 import User from "../model/authModel.js";
-let addPdf = async (req, res) => {
-  try {
-    const { title } = req.body;
-    const file = req.file;
-
-    if (!file || !file.mimetype.includes('pdf')) {
-      return res.status(400).json({ error: 'Only PDF files allowed' });
-    }
-
-    const streamUpload = (fileBuffer) => {
-      return new Promise((resolve, reject) => {
-        const stream = cloudinary.uploader.upload_stream(
-          { resource_type: 'raw', folder: 'pdfs' },
-          (error, result) => {
-            if (result) resolve(result);
-            else reject(error);
-          }
-        );
-        streamifier.createReadStream(fileBuffer).pipe(stream);
-      });
-    };
-
-    const result = await streamUpload(file.buffer);
-    console.log(result);
-    const pdf = new Pdf({
-      title,
-      url: result.secure_url,
-      publicId: result.public_id,
-    });
-
-    await pdf.save();
-
-    res.status(200).json({ message: 'PDF uploaded', data: pdf });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Upload failed' });
-  }
-}
 
 // create Course
 let createCourse = async (req, res) => {
@@ -154,7 +113,7 @@ let removeStudentFromCourse = async (req, res) => {
   }
 }
 // get student by course id package name 
-let getStudentByCourseId = async (req, res) => {
+let getWaitingStudentByCourseId = async (req, res) => {
   const { courseId } = req.params;
 
   if (!courseId) {
@@ -243,20 +202,6 @@ let deleteCourse = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 }
-// get Course using teacher id  
-let getCourseByTeacherId = async (req, res) => {
-  const { teacherId } = req.params;
-  try {
-    const courses = await Course.find({ teacherId }).populate('studentId', 'firstName lastName email role');
-    if (!courses) {
-      return res.status(404).json({ error: "Courses not found" });
-    }
-    res.status(200).json({ message: "Courses fetched successfully", courses });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: error.message });
-  }
-}
 // get all data waiting student  total student and total teacher 
 let getAllUserData = async (req, res) => {
   try {
@@ -282,15 +227,13 @@ let getAllTeacher = async (req, res) => {
 
 
 export {
-  addPdf,
   createCourse,
   getAllCourses,
   addStudentToCourse,
   removeStudentFromCourse,
-  getStudentByCourseId,
+  getWaitingStudentByCourseId,
   getAllUserData,
   UpdateClassLink,
   updateCourse,
   deleteCourse,
-  getCourseByTeacherId
 };

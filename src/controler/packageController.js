@@ -43,24 +43,6 @@ const getAllPackages = async (req, res) => {
     }
 };
 // get package by student id 
-let getPackageByStudentId = async (req, res) => {
-    try {
-        const { studentId } = req.params;
-        const packages = await Package.find({ studentId }).populate("studentId", "name email role status gender")
-            .populate("courseId", "courseName")
-        if (packages.length === 0) {
-            return res.status(404).json({ message: "No packages found for this student" });
-        }
-        // check the role of the student
-        if (packages[0].studentId.role !== "student") {
-            return res.status(403).json({ message: "You are not authorized to access this package" });
-        }
-
-        res.status(200).json({ message: "Packages retrieved successfully", data: packages });
-    } catch (error) {
-        res.status(500).json({ message: "Error retrieving packages", error: error.message });
-    }
-};
 // buy a package 
 const buyPackage = async (req, res) => {
     const { studentId, courseId } = req.body;
@@ -96,4 +78,5 @@ const buyPackage = async (req, res) => {
       });
     }
   };
-export { createPackage, getAllPackages, getPackageByStudentId, buyPackage };
+  
+export { createPackage, getAllPackages, buyPackage };

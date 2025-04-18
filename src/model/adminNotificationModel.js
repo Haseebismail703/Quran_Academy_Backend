@@ -7,8 +7,8 @@ const adminNotificationSchema = new mongoose.Schema({
   },
   userId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "Users", 
-    default: null, 
+    ref: "Users",
+    default: null,
   },
   role: {
     type: String,
@@ -19,11 +19,11 @@ const adminNotificationSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
-},{
-    timestamps: {
-        createdAt: 'created_at',
-        updatedAt: 'updated_at'
-    }
+}, {
+  timestamps: {
+    createdAt: 'created_at',
+    updatedAt: 'updated_at'
+  }
 });
 
 const Notification = mongoose.model("AdminNoti", adminNotificationSchema);
