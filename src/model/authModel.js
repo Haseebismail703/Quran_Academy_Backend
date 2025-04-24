@@ -30,21 +30,22 @@ const userSchema = new Schema({
         type: Schema.Types.String,
         default: 'not selected'
     },
-    classLink : {
-        type: Schema.Types.String,
-        default: ''
-    },
     
-    courses: [
+    classes: [
         {
             teacherId: {
                 type: Schema.Types.ObjectId,
                 ref: 'Users', // Assuming teachers are also stored in the Users collection
                 default : null
             },
+            classId: {
+                type: Schema.Types.ObjectId,
+                ref: 'classes', 
+                default : null
+            },
             courseId: {
                 type: Schema.Types.ObjectId,
-                ref: 'courses', // Assuming courses are stored in the coursees collection
+                ref: 'courses', 
                 default : null
             },
             status: {
@@ -55,9 +56,18 @@ const userSchema = new Schema({
             timing : {
                 type: Schema.Types.String,
                 default: 'not selected'
+            },
+            classLink : {
+                type: Schema.Types.String,
+                default: ''
             }
         }
     ]
+    ,
+    profileUrl : {
+        type: Schema.Types.String,
+        default: ''
+    }
 }, {
     timestamps: {
         createdAt: 'created_at',

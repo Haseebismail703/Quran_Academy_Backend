@@ -43,6 +43,16 @@ const getAllPackages = async (req, res) => {
     }
 };
 // get package by student id 
+const getAllPackageStudentId = async (req, res) => {
+  const {studentId} = req.params
+  try {
+      const packages = await Package.find(studentId).sort({ createdAt: -1 })
+          .populate("courseId", "courseName")
+      res.status(200).json({ message: "Packages retrieved successfully", data: packages });
+  } catch (error) {
+      res.status(500).json({ message: "Error retrieving packages", error: error.message });
+  }
+};
 // buy a package 
 const buyPackage = async (req, res) => {
     const { studentId, courseId } = req.body;
@@ -54,12 +64,12 @@ const buyPackage = async (req, res) => {
         return res.status(404).json({ message: "Student not found" });
       }
       // check cource id alredy exist 
-        const courseExist = student.courses.find((course) => course.courseId.toString() === courseId);
+        const courseExist = student.classes.find((cls) => cls.courseId.toString() === courseId);
         if (courseExist) {
             return res.status(400).json({ message: "Course already exists" });
         }
       // Push the course with teacherId and courseId
-      student.courses.push({
+      student.classes.push({
         teacherId : null,
         courseId,
         status: 'waiting' 
@@ -79,4 +89,4 @@ const buyPackage = async (req, res) => {
     }
   };
   
-export { createPackage, getAllPackages, buyPackage };
+export { createPackage, getAllPackages, buyPackage ,getAllPackageStudentId};

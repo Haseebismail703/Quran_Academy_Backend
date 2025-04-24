@@ -4,41 +4,38 @@ import Package from '../model/packageModel.js'
 import File from '../model/fileModel.js'
 import cloudinary from '../confiq/cloudinary.js'
 import streamifier from 'streamifier';
-
-// get Course by teacher id
-export const getCourseByTeacherId = async (req, res) => {
+import Class from '../model/classModel.js'
+// get Class by teacher id
+export const getClassByTeacherId = async (req, res) => {
     try {
         const { teacherId } = req.params;
-        const courses = await Course.find({ teacherId: teacherId }).populate('studentId');
-        if (!courses) {
-            return res.status(404).json({ message: "No courses found for this teacher" });
+        const classData = await Class.find({ teacherId: teacherId }).populate('studentId').populate('classId');
+        if (!classData) {
+            return res.status(404).json({ message: "No class found for this teacher" });
         }
-        return res.status(200).json(courses);
+        return res.status(200).json(classData);
     } catch (error) {
-        console.error("Error fetching courses by teacher ID:", error.message);
+        console.error("Error fetching class by teacher ID:", error.message);
         return res.status(500).json({ message: "Internal server error" });
     }
 };
-
 // get all student by course id
-export const getJoinStudentByCourseId = async (req, res) => {
-    const { courseId } = req.params;
+export const getJoinStudentByClassId = async (req, res) => {
+    const { classId } = req.params;
     try {
-        const students = await User.find({ role: "student", courses: { $elemMatch: { courseId: courseId, status: 'join' } } })
+        const students = await User.find({ role: "student", classes: { $elemMatch: { classId: classId, status: 'join' } } })
         res.status(200).json(students);
     } catch (error) {
         console.error(error);
         res.status(500).json({ error: error.message });
     }
 }
-
-
 // add File
 export const addFile = async (req, res) => {
     // console.log("Uploaded File: ", req.body);
 
     try {
-        const { title, type, courseId } = req.body;
+        const { title, type, classId } = req.body;
         const file = req.file;
 
         if (!file) {
@@ -76,7 +73,7 @@ export const addFile = async (req, res) => {
         const fileData = new File({
             title,
             type,
-            courseId: courseId,
+            classId: classId,
             url: result.secure_url,
             publicId: result.public_id,
             type,
@@ -90,27 +87,23 @@ export const addFile = async (req, res) => {
         res.status(500).json({ error: 'Upload failed' });
     }
 };
-
-
-// get all files by course id
-export const getFilesByCourseId = async (req, res) => {
-    const { courseId } = req.params;
+// get all files by class id
+export const getFilesByClassId = async (req, res) => {
+    const { classId } = req.params;
     try {
         const files = await File.find({
-            courseId: courseId
+            classId: classId
         });
         if (!files) {
-            return res.status(404).json({ message: "No files found for this course" });
+            return res.status(404).json({ message: "No files found for this class" });
         }
         return res.status(200).json(files);
     }
     catch (error) {
-        console.error("Error fetching files by course ID:", error.message);
+        console.error("Error fetching files by class ID:", error.message);
         return res.status(500).json({ message: "Internal server error" });
     }
 }
-
-
 
 // delete the file using publick id and file id
 export const deleteFile = async (req, res) => {
@@ -135,29 +128,29 @@ export const deleteFile = async (req, res) => {
     }
 };
 
-// get all files by course id and student id 
-export const getFilesByCourseIdAndStudentId = async (req, res) => {
-    const { courseId, studentId } = req.params;
+// get all files by class id and student id 
+export const getFilesByClassIdAndStudentId = async (req, res) => {
+    const { classId, studentId } = req.params;
 
     try {
-        let getCourse = await Course.findById(courseId)
-        if (!getCourse) {
-            return res.status(404).json({ message: "Course not found" });
+        let getClass = await Course.findById(classId)
+        if (!getClass) {
+            return res.status(404).json({ message: "Class not found" });
         }
-        if (getCourse.studentId.toString() !== studentId) {
-            return res.status(403).json({ message: "You are not enrolled in this course" });
+        if (getClass.studentId.toString() !== studentId) {
+            return res.status(403).json({ message: "You are not enrolled in this class" });
         }
         const files = await File.find({
-            courseId: courseId,
+            classId: classId,
             studentId: studentId
         });
         if (!files) {
-            return res.status(404).json({ message: "No files found for this course" });
+            return res.status(404).json({ message: "No files found for this class" });
         }
         return res.status(200).json(files);
     }
     catch (error) {
-        console.error("Error fetching files by course ID:", error.message);
+        console.error("Error fetching files by class ID:", error.message);
         return res.status(500).json({ message: "Internal server error" });
     }
 }

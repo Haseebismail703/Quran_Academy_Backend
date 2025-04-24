@@ -2,31 +2,31 @@ import User from '../model/authModel.js'
 import Course from '../model/courseModel.js'
 import Package from '../model/packageModel.js'
 import File from '../model/fileModel.js'
+import Class from '../model/classModel.js'
 
-
-// get all courses by student id
-export const getAllCoursesByStudentId = async (req, res) => {
+// get all class by student id 
+export const getAllClassesByStudentId = async (req, res) => {
     try {
         const { studentId } = req.params;
         const student = await User.findById(studentId)
         if (!student) {
             return res.status(404).json({ message: 'Student not found' });
         }
-        const courses = student.courses.map(course => course.courseId)
-        const courseDetails = await Course.find({ _id: { $in: courses } })
-        return res.status(200).json(courseDetails);
+        const classes = student.classes.map(cls => cls.classId)
+        const classDetails = await Class.find({ _id: { $in: classes } })
+        return res.status(200).json(classDetails);
     }
     catch (error) {
-        console.error('Error fetching courses:', error);
+        console.error('Error fetching class:', error);
         return res.status(500).json({ message: error.message });
     }
 }
-// get files by course id
-export const getFilesByCourseId = async (req, res) => {
+// get files by class id
+export const getFilesByClassId = async (req, res) => {
     try {
-        const { courseId } = req.params;
+        const { classId } = req.params;
         const files = await File.find({
-            courseId: courseId
+            classId: classId
         })
         if (!files) {
             return res.status(404).json({ message: 'Files not found' });
@@ -57,3 +57,4 @@ export const getPackageByStudentId = async (req, res) => {
         return res.status(500).json({ message: error.message });
     }
 }
+
