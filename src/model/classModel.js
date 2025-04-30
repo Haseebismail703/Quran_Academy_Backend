@@ -3,12 +3,14 @@ import mongoose from 'mongoose';
 let classSchema = new mongoose.Schema({
     courseId: {
         type: mongoose.Schema.Types.ObjectId,
-        ref : 'Courses',
+        ref: 'Courses',
         required: true
     },
-    shift: {
+    classTiming: {
         type: mongoose.Schema.Types.String,
-        enum: ['3 to 7 afternoon', '7 to 1 evening', '2 to 8 night'],
+        enum: ['3 PM to 7 PM (Afternoon)',
+            '7 PM to 1 AM (Evening)',
+            '2 AM to 8 AM (Night)'],
         required: true
     },
     teacherId: {
@@ -23,7 +25,7 @@ let classSchema = new mongoose.Schema({
     },
     theme: {
         type: mongoose.Schema.Types.String,
-        deafult : ''
+        deafult: ''
     },
 }, {
     timestamps: {

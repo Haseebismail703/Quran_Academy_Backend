@@ -108,7 +108,7 @@ export let UpdateClassLink = async (req, res) => {
 // create class
 export let createClass = async (req, res) => {
   try {
-    const { courseId, shift, teacherId, studentId, } = req.body;
+    const { courseId, classTiming, teacherId, studentId,theme } = req.body;
     // check teacher id is valid 
     const teacher = await User.find({ _id: teacherId, role: 'teacher' });
     if (teacher.length === 0) {
@@ -116,10 +116,10 @@ export let createClass = async (req, res) => {
     }
     const newClass = new Class({
       courseId,
-      shift,
+      classTiming,
       teacherId,
       studentId,
-
+      theme
     });
     await newClass.save();
     res.status(200).json({ message: "Class created successfully", classData: newClass });
@@ -134,6 +134,8 @@ export let getAllClasses = async (req, res) => {
   try {
     const classData = await Class.find()
       .populate('teacherId', 'firstName lastName email role')
+      .populate('courseId', 'courseName')
+      .populate('studentId', 'firstName , profileUrl , gender')
     res.status(200).json({ classData });
   } catch (error) {
     console.error(error);
@@ -288,7 +290,7 @@ export let getWaitingStudentCourseId = async (req, res) => {
 // update course deatil 
 export let updateClass = async (req, res) => {
   const { classId } = req.params;
-  const { courseId, teacherId, shift } = req.body;
+  const { courseId, teacherId, classTiming } = req.body;
 
   if (teacherId) {
     // check teacher id is valid 
@@ -306,7 +308,7 @@ export let updateClass = async (req, res) => {
     const updatedData = {
       courseId: courseId || getClass.courseId,
       teacherId: teacherId || getClass.teacherId,
-      shift: shift || getClass.shift,
+      classTiming: classTiming || getClass.classTiming,
     };
 
     const classData = await Class.findByIdAndUpdate(classId, updatedData, { new: true });
