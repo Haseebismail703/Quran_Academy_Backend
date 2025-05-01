@@ -1,21 +1,13 @@
 import mongoose from "mongoose";
 
 let packageSchema = new mongoose.Schema({
-    courseName: {
+    packageName: {
         type: mongoose.Schema.Types.String,
-        required: true
+        required: true,
     },
     coursePrice: {
         type: mongoose.Schema.Types.Number,
         required: true
-    },
-    courseDuration: {
-        type: mongoose.Schema.Types.String,
-        required: true
-    },
-    classPerMonth: {
-        type: mongoose.Schema.Types.Number,
-        default: 5
     },
     classPerWeek: {
         type: mongoose.Schema.Types.Number,
@@ -37,8 +29,13 @@ let packageSchema = new mongoose.Schema({
     },
     courseId : {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'courses'
-    }
+        ref: 'Courses'
+    },
+    paymentStatus: {
+        type: mongoose.Schema.Types.String,
+        default: 'inCompleted',
+        enum: ['completed', 'inCompleted']
+    },
 }, {
     timestamps: {
         createdAt: 'created_at',

@@ -3,8 +3,9 @@ import User from "../model/authModel.js";
 import Course from '../model/courseModel.js'
 // create a new package
 const createPackage = async (req, res) => {
+  console.log("create package", req.body)
     try {
-        const { courseName, coursePrice, courseDuration, classPerMonth, classPerWeek, classType, sessionDuration, studentId, courseId } = req.body;
+        const { packageName, coursePrice, classPerMonth, classPerWeek, classType, sessionDuration, studentId, courseId } = req.body;
         // check student id is valid
         const user = await User.findById(studentId);
         if (!user) {
@@ -16,9 +17,8 @@ const createPackage = async (req, res) => {
             return res.status(404).json({ message: "course not found" });
         }
         const newPackage = new Package({
-            courseName,
+          packageName,
             coursePrice,
-            courseDuration,
             classPerMonth,
             classPerWeek,
             classType,
@@ -89,4 +89,21 @@ const buyPackage = async (req, res) => {
     }
   };
   
-export { createPackage, getAllPackages, buyPackage ,getAllPackageStudentId};
+  /// delete package by id
+
+  let deletePackage = async (req, res) => {
+    const { packageId } = req.params;
+    try {
+        const packages = await Package.findByIdAndDelete(packageId);
+        if (!packages) {
+            return res.status(404).json({ message: "Package not found" });
+        }
+        res.status(200).json({ message: "Package deleted successfully", data: packages });
+    }
+    catch (error) {
+        res.status(500).json({ message: "Error deleting package", error: error.message });
+    }
+}
+
+
+export { createPackage, getAllPackages, buyPackage ,getAllPackageStudentId,deletePackage};

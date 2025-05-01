@@ -18,11 +18,20 @@ let classSchema = new mongoose.Schema({
         required: true,
         ref: 'Users'
     },
-    studentId: {
-        type: [mongoose.Schema.Types.ObjectId],
-        default: [],
-        ref: 'Users'
-    },
+    students: [
+        {
+          studentId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Users',
+            required: true
+          },
+          studentTiming: String, 
+          addedAt: {
+            type: Date,
+            default: Date.now
+          }
+        }
+      ],
     theme: {
         type: mongoose.Schema.Types.String,
         deafult: ''

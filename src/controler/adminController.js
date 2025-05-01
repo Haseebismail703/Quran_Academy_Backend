@@ -43,12 +43,12 @@ export let deleteCourse = async (req, res) => {
 }
 // update course 
 export let updateCourseDetails = async (req, res) => {
-  const { courseId } = req.params; 
-  const { courseName, shift,theme } = req.body;
+  const { courseId } = req.params;
+  const { courseName, shift, theme } = req.body;
 
   try {
     // Fetch the course
-    const existingCourse = await Course.findById(courseId); 
+    const existingCourse = await Course.findById(courseId);
     if (!existingCourse) {
       return res.status(404).json({ error: "Course not found" });
     }
@@ -108,7 +108,7 @@ export let UpdateClassLink = async (req, res) => {
 // create class
 export let createClass = async (req, res) => {
   try {
-    const { courseId, classTiming, teacherId, studentId,theme } = req.body;
+    const { courseId, classTiming, teacherId, studentId, theme } = req.body;
     // check teacher id is valid 
     const teacher = await User.find({ _id: teacherId, role: 'teacher' });
     if (teacher.length === 0) {
@@ -133,15 +133,17 @@ export let createClass = async (req, res) => {
 export let getAllClasses = async (req, res) => {
   try {
     const classData = await Class.find()
-      .populate('teacherId', 'firstName lastName email role')
+      .populate('teacherId', 'firstName lastName email role profileUrl')
       .populate('courseId', 'courseName')
-      .populate('studentId', 'firstName , profileUrl , gender')
+      .populate('students.studentId', 'firstName profileUrl gender');
+
     res.status(200).json({ classData });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: error.message });
   }
-}
+};
+
 
 export let addStudentToClass = async (req, res) => {
   const { classId, studentId, timing } = req.body;
@@ -163,15 +165,25 @@ export let addStudentToClass = async (req, res) => {
     if (!classData) {
       return res.status(404).json({ error: "Class not found" });
     }
-
+   // check time is alredy used 
+    const isTimeSlotUsed = classData.students.some(
+      (s) => s.studentTiming === timing
+    );
+    if (isTimeSlotUsed) {
+      return res.status(400).json({ error: "Time slot is already used" });
+    }
+    
     // 4. Check if the student is already added to this class
-    if (classData.studentId.includes(student._id)) {
+    const isStudentAlreadyInClass = classData.students.some(
+      (s) => s.studentId.toString() === student._id.toString()
+    );
+    if (isStudentAlreadyInClass) {
       return res.status(400).json({ error: "Student is already in the class" });
     }
 
-    // ✅ 5. Find the entry with status 'waiting' (classId is null)
+    // 5. Find the 'waiting' entry in student.classes
     const waitingEntry = student.classes.find(
-      (cls) => cls.status === 'waiting' && !cls.classId
+      (cls) => cls.status === 'waiting' && cls.classId === null
     );
 
     if (waitingEntry) {
@@ -180,7 +192,6 @@ export let addStudentToClass = async (req, res) => {
       waitingEntry.status = 'join';
       waitingEntry.timing = timing;
     } else {
-      // if status not 'waiting' 
       return res.status(400).json({ error: "No waiting status found to update" });
     }
 
@@ -188,69 +199,68 @@ export let addStudentToClass = async (req, res) => {
     await student.save();
 
     // 6. Add student to class
-    classData.studentId.push(student._id);
+    classData.students.push({
+      studentId: student._id,
+      studentTiming: timing,
+      addedAt: new Date()
+    });
     await classData.save();
 
-    res.status(200).json({ message: "Student successfully added to class", class: classData });
+    res.status(200).json({
+      message: "Student successfully added to class",
+      class: classData
+    });
   } catch (error) {
     console.error("Error adding student to class:", error);
     res.status(500).json({ error: "Internal Server Error", details: error.message });
   }
 };
+// remove the student from class
 
-export let removeStudentFromClass = async (req, res) => {
+
+export const removeStudentFromClass = async (req, res) => {
   const { classId, studentId } = req.body;
-
+  console.log(req.body)
   try {
-    // 1. Find the class (no need to populate)
     const classData = await Class.findById(classId);
     if (!classData) {
       return res.status(404).json({ error: "Class not found" });
     }
 
-    // 2. Check if student is in class (using ObjectId.equals)
-    const isStudentInClass = classData.studentId.some(
-      (id) => id.equals(studentId)
-    );
+    const originalLength = classData.students.length;
 
-    if (!isStudentInClass) {
-      return res.status(400).json({ error: "Student not in class" });
+    // Remove student by _id of the inner object
+    classData.students = classData.students.filter(
+      (student) => student.studentId.toString() !== studentId
+    );
+    if (classData.students.length === originalLength) {
+      return res.status(404).json({ error: "Student record not found in class" });
     }
-
-    // 3. Remove student from the class
-    classData.studentId = classData.studentId.filter(
-      (id) => !id.equals(studentId)
-    );
-    await classData.save();
-
-    // 4. Update student's class entry
+    // Update the student's classes array to remove the classId
     const student = await User.findById(studentId);
     if (!student) {
       return res.status(404).json({ error: "Student not found" });
     }
-
-    const classEntry = student.classes.find(
-      (cls) => cls.classId?.toString() === classId
+    const studentClassEntry = student.classes.find(
+      (cls) => cls.classId.toString() === classId
     );
-
-    if (!classEntry) {
-      return res.status(400).json({ error: "Class not found in student's record" });
+    if (studentClassEntry) {
+      studentClassEntry.classId = null; 
+      studentClassEntry.status = 'waiting'; 
+      studentClassEntry.timing = '';
+    } else {
+      return res.status(404).json({ error: "Student not found in classes" });
     }
-
-    classEntry.status = 'waiting';
-    classEntry.classId = null;
-    classEntry.timing = null; // optional
-
+    // Save the updated student data
     await student.save();
+    // Save the updated class data
+    await classData.save();
 
     res.status(200).json({
       message: "Student successfully removed from class",
-      class: {
-        _id: classData._id,
-        title: classData.title,
-        students: classData.studentId,
-      }
+      updatedStudents: classData.students,
     });
+
   } catch (error) {
     console.error("Error removing student:", error);
     res.status(500).json({ error: "Internal Server Error", details: error.message });
@@ -261,11 +271,12 @@ export let getWaitingStudentCourseId = async (req, res) => {
   const { courseId } = req.params;
 
   if (!courseId) {
-    return res.status(404).json({ message: "Course not found" });
+    return res.status(400).json({ message: "Course ID is required" });
   }
 
   try {
-    const students = await User.find({
+    // Get waiting students for the course
+    const waitingStudents = await User.find({
       role: "student",
       classes: {
         $elemMatch: {
@@ -273,20 +284,115 @@ export let getWaitingStudentCourseId = async (req, res) => {
           status: "waiting"
         }
       }
-    })
-
-    res.status(200).json({
-      message: "Waiting students fetched successfully",
-      data: students
     });
+
+    // Get class by courseId (not _id)
+    const getClass = await Class.findOne({ courseId });
+
+    if (!getClass) {
+      return res.status(404).json({ message: "Class not found" });
+    }
+
+    // Define time slots
+    const timeSlots = {
+      "3 PM to 7 PM (Afternoon)": [
+        "03:00 PM to 03:30 PM",
+        "03:30 PM to 04:00 PM",
+        "04:00 PM to 04:30 PM",
+        "04:30 PM to 05:00 PM",
+        "05:00 PM to 05:30 PM",
+        "05:30 PM to 06:00 PM",
+        "06:00 PM to 06:30 PM",
+        "06:30 PM to 07:00 PM"
+      ],
+      "7 PM to 1 AM (Evening)": [
+        "07:00 PM to 07:30 PM",
+        "07:30 PM to 08:00 PM",
+        "08:00 PM to 08:30 PM",
+        "08:30 PM to 09:00 PM",
+        "09:00 PM to 09:30 PM",
+        "09:30 PM to 10:00 PM",
+        "10:00 PM to 10:30 PM",
+        "10:30 PM to 11:00 PM",
+        "11:00 PM to 11:30 PM",
+        "11:30 PM to 12:00 AM",
+        "12:00 AM to 12:30 AM",
+        "12:30 AM to 01:00 AM"
+      ],
+      "2 AM to 8 AM (Night)": [
+        "02:00 AM to 02:30 AM",
+        "02:30 AM to 03:00 AM",
+        "03:00 AM to 03:30 AM",
+        "03:30 AM to 04:00 AM",
+        "04:00 AM to 04:30 AM",
+        "04:30 AM to 05:00 AM",
+        "05:00 AM to 05:30 AM",
+        "05:30 AM to 06:00 AM",
+        "06:00 AM to 06:30 AM",
+        "06:30 AM to 07:00 AM",
+        "07:00 AM to 07:30 AM",
+        "07:30 AM to 08:00 AM"
+      ]
+    };
+
+    // Get timing based on classTiming field
+    const fullSlotList = timeSlots[getClass.classTiming] || [];
+    // Get already used timings
+    const usedTimings = getClass.students.map(std => std.studentTiming)
+
+    // Remaining available time slots
+    const remainingSlots = fullSlotList.filter(slot => !usedTimings.includes(slot));
+
+    return res.status(200).json({
+      message: "Waiting students and remaining time slots fetched successfully",
+      waitingStudent: waitingStudents,
+      remainingSlots: remainingSlots
+    });
+
   } catch (error) {
-    res.status(500).json({
+    return res.status(500).json({
       message: "Something went wrong",
       error: error.message
     });
   }
-}
+};
 
+// get all class by  class id 
+export const getClassWithStudents = async (req, res) => {
+    const { classId } = req.params;
+
+    try {
+        const classData = await Class.findById(classId)
+            .populate({
+                path: 'courseId',
+                select: 'courseName'
+            })
+            .populate({
+                path: 'teacherId',
+                select: 'firstName lastName email profilePicture' 
+            })
+            .populate({
+                path: 'students.studentId',
+                select: 'firstName lastName email gender profileUrl status' 
+            });
+           
+        if (!classData) {
+            return res.status(404).json({ message: "Class not found" });
+        }
+
+
+        res.status(200).json({
+             classData
+        });
+
+    } catch (error) {
+        console.error("Error in getClassWithStudents:", error);
+        res.status(500).json({
+            message: "Internal server error",
+            error: error.message
+        });
+    }
+};
 // update course deatil 
 export let updateClass = async (req, res) => {
   const { classId } = req.params;
@@ -354,5 +460,24 @@ export let getAllTeacher = async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Failed to fetch teachers" });
+  }
+}
+
+// get course and waiting student 
+export let getCourseAndWaitingStudent = async (req, res) => {
+  try {
+    const courses = await Course.find();
+    const waitingStudents = await User.find(
+     { role : 'student',
+      classes: {
+        $elemMatch: {
+          status: 'waiting'
+        }
+      }}
+    );
+    res.status(200).json({ courses, waitingStudents });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Failed to fetch courses and waiting students" });
   }
 }

@@ -67,6 +67,11 @@ const userSchema = new Schema({
     profileUrl : {
         type: Schema.Types.String,
         default: ''
+    },
+    status : {
+        type: Schema.Types.String,
+        default: 'active',
+        enum: ['active', 'block']
     }
 }, {
     timestamps: {

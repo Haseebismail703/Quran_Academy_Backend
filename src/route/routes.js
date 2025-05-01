@@ -1,11 +1,11 @@
 import express from "express";
-import { signupUser, signinUser, adminLogin, updateUser, logOut } from '../controler/authController.js'
+import { signupUser, signinUser, adminLogin, updateUser, logOut,updateStatusAndFirstName } from '../controler/authController.js'
 import { creatReview, getReview } from '../controler/reviewController.js'
 import { billingAddress } from "../controler/billingControler.js"
 import { getClassByTeacherId, getJoinStudentByClassId, addFile, deleteFile,getFilesByClassId } from "../controler/teacherController.js"
-import { createPackage, getAllPackages, buyPackage, getAllPackageStudentId } from "../controler/packageController.js"
+import { createPackage, getAllPackages, buyPackage, getAllPackageStudentId, deletePackage } from "../controler/packageController.js"
 import { getAllClassesByStudentId, getPackageByStudentId } from "../controler/studentController.js"
-import { createClass, getAllClasses, addStudentToClass, removeStudentFromClass, getWaitingStudentCourseId, updateClass, deleteClass, getAllTeacher, getAllUserData, createCourse, getAllCourses, UpdateClassLink, updateCourseDetails, deleteCourse } from '../controler/adminController.js'
+import { createClass, getAllClasses, addStudentToClass, removeStudentFromClass, getWaitingStudentCourseId, updateClass, deleteClass, getAllTeacher, getAllUserData, createCourse, getAllCourses, UpdateClassLink, updateCourseDetails, deleteCourse, getClassWithStudents, getCourseAndWaitingStudent } from '../controler/adminController.js'
 
 import multer from 'multer'
 import { getStudentAttendanceHistory, getStudentAttendence, markAttendance, updateAttendance } from "../controler/attendenceController.js";
@@ -24,17 +24,19 @@ router.get('/getAllClasses', getAllClasses)
 router.post('/addStudentToClass', addStudentToClass)
 router.post('/removeStudentFromClass', removeStudentFromClass)
 router.get('/getWaitingStudentCourseId/:courseId', getWaitingStudentCourseId)
+router.get('/getClassWithStudents/:classId', getClassWithStudents)
 router.put('/updateClass/:classId', updateClass)
 router.delete('/deleteClass/:classId', deleteClass)
 router.get('/getAllUserData', getAllUserData);
 router.get('/getAllTeacher', getAllTeacher)
 router.put('/UpdateClassLink/:studentId', UpdateClassLink)
-
+router.get('/getCourseAndWaitingStudent', getCourseAndWaitingStudent)
 // auth routes
 router.post('/signupUser', signupUser);
 router.post('/signinUser', signinUser);
 router.post('/adminLogin', adminLogin);
 router.put('/updateUser/:userId',upload.single('file'), updateUser);
+router.put('/updateStatusAndFirstName/:userId', updateStatusAndFirstName);
 router.post('/logOut', logOut)
 // review routes
 router.post('/creatReview', creatReview);
@@ -47,6 +49,7 @@ router.post('/createPackage', createPackage);
 router.get('/getAllPackages', getAllPackages);
 router.post('/buyPackage', buyPackage);
 router.get('/getAllPackageStudentId', getAllPackageStudentId)
+router.delete('/deletePackage/:packageId', deletePackage);
 // teacher route 
 router.get('/getClassByTeacherId/:teacherId', getClassByTeacherId);
 router.get('/getJoinStudentByClassId/:classId', getJoinStudentByClassId);
