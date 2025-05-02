@@ -20,18 +20,24 @@ let classSchema = new mongoose.Schema({
     },
     students: [
         {
-          studentId: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: 'Users',
-            required: true
-          },
-          studentTiming: String, 
-          addedAt: {
-            type: Date,
-            default: Date.now
-          }
+            studentId: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: 'Users',
+                required: true
+            },
+            studentTiming: String,
+            addedAt: {
+                type: Date,
+                default: Date.now
+            },
+            classLink: {
+                type: mongoose.Schema.Types.String,
+                default: ''
+            },
+
         }
-      ],
+    ],
+
     theme: {
         type: mongoose.Schema.Types.String,
         deafult: ''

@@ -2,13 +2,13 @@ import express from "express";
 import { signupUser, signinUser, adminLogin, updateUser, logOut,updateStatusAndFirstName } from '../controler/authController.js'
 import { creatReview, getReview } from '../controler/reviewController.js'
 import { billingAddress } from "../controler/billingControler.js"
-import { getClassByTeacherId, getJoinStudentByClassId, addFile, deleteFile,getFilesByClassId } from "../controler/teacherController.js"
+import { getClassByTeacherId, getJoinStudentByClassId, addFile, deleteFile,getFilesByClassId, addClassLinkToStudent } from "../controler/teacherController.js"
 import { createPackage, getAllPackages, buyPackage, getAllPackageStudentId, deletePackage } from "../controler/packageController.js"
 import { getAllClassesByStudentId, getPackageByStudentId } from "../controler/studentController.js"
 import { createClass, getAllClasses, addStudentToClass, removeStudentFromClass, getWaitingStudentCourseId, updateClass, deleteClass, getAllTeacher, getAllUserData, createCourse, getAllCourses, UpdateClassLink, updateCourseDetails, deleteCourse, getClassWithStudents, getCourseAndWaitingStudent } from '../controler/adminController.js'
 
 import multer from 'multer'
-import { getStudentAttendanceHistory, getStudentAttendence, markAttendance, updateAttendance } from "../controler/attendenceController.js";
+import { getAllAttendance, getStudentAttendanceHistory, getStudentAttendence, markAttendance, updateAttendance } from "../controler/attendenceController.js";
 const router = express.Router();
 
 let storage = multer.memoryStorage();
@@ -55,6 +55,8 @@ router.get('/getClassByTeacherId/:teacherId', getClassByTeacherId);
 router.get('/getJoinStudentByClassId/:classId', getJoinStudentByClassId);
 router.post('/addFile', upload.single('file'), addFile);
 router.delete('/deleteFile/:fileId', deleteFile);
+router.put('/addClassLink/:studentId', addClassLinkToStudent)
+router.get('/getAllAttendance/:classId/:date',getAllAttendance)
 // student route
 router.get('/getAllClassesByStudentId/:studentId', getAllClassesByStudentId);
 router.get('/getFilesByClassId/:classId', getFilesByClassId);

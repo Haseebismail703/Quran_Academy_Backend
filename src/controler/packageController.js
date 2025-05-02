@@ -44,15 +44,18 @@ const getAllPackages = async (req, res) => {
 };
 // get package by student id 
 const getAllPackageStudentId = async (req, res) => {
-  const {studentId} = req.params
+  const { studentId } = req.params;
   try {
-      const packages = await Package.find(studentId).sort({ createdAt: -1 })
-          .populate("courseId", "courseName")
-      res.status(200).json({ message: "Packages retrieved successfully", data: packages });
+    const packages = await Package.find({ studentId })
+      .populate("courseId", "courseName")
+
+
+    res.status(200).json({ message: "Packages retrieved successfully", data: packages });
   } catch (error) {
-      res.status(500).json({ message: "Error retrieving packages", error: error.message });
+    res.status(500).json({ message: "Error retrieving packages", error: error.message });
   }
 };
+
 // buy a package 
 const buyPackage = async (req, res) => {
     const { studentId, courseId } = req.body;

@@ -36,6 +36,15 @@ let packageSchema = new mongoose.Schema({
         default: 'inCompleted',
         enum: ['completed', 'inCompleted']
     },
+    monthStart: {
+        type: mongoose.Schema.Types.Number,
+        default: 0
+    },
+    monthEnd: {
+        type: mongoose.Schema.Types.Number,
+        default: 0
+    },
+    
 }, {
     timestamps: {
         createdAt: 'created_at',

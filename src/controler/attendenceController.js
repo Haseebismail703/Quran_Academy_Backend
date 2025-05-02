@@ -64,13 +64,9 @@ export const getStudentAttendanceHistory = async (req, res) => {
 
 export const updateAttendance = async (req, res) => {
     const { classId, date, studentId, newStatus } = req.body;
-
-    const formattedDate = new Date(date);
-    formattedDate.setHours(0, 0, 0, 0); // Normalize date
-
     try {
         // Step 1: Find the attendance record for the class and date
-        const attendance = await Attendance.findOne({ classId, date: formattedDate });
+        const attendance = await Attendance.findOne({ classId, date});
 
         if (!attendance) {
             return res.status(404).json({ message: "Attendance not found for the given class and date" });
@@ -145,4 +141,25 @@ export const getStudentAttendence = async (req, res) => {
     }
 };
 
+// Get all attendance by class ID and date
+export const getAllAttendance = async (req, res) => {
+    const { classId, date } = req.params;
+    // console.log(req.params)
+    try {
+        const formattedDate = date.slice(0, 10); 
+        const attendanceRecords = await Attendance.find({
+            classId,
+            date: formattedDate
+        }).populate('records.studentId', 'firstName lastName email gender');
+
+        if (!attendanceRecords || attendanceRecords.length === 0) {
+            return res.status(404).json({ message: "No attendance records found for this class and date." });
+        }
+
+        res.status(200).json(attendanceRecords);
+    } catch (error) {
+        console.error("Fetch Attendance Error:", error);
+        res.status(500).json({ message: "Internal server error", error: error.message });
+    }
+};
 

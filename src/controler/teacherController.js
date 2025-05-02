@@ -9,7 +9,9 @@ import Class from '../model/classModel.js'
 export const getClassByTeacherId = async (req, res) => {
     try {
         const { teacherId } = req.params;
-        const classData = await Class.find({ teacherId: teacherId }).populate('studentId').populate('classId');
+        const classData = await Class.find({ teacherId: teacherId }).populate('teacherId', 'firstName lastName email')
+            .populate('students.studentId', 'firstName lastName email')
+            .populate('courseId', 'courseName')
         if (!classData) {
             return res.status(404).json({ message: "No class found for this teacher" });
         }
@@ -19,11 +21,17 @@ export const getClassByTeacherId = async (req, res) => {
         return res.status(500).json({ message: "Internal server error" });
     }
 };
-// get all student by course id
+// get all student by class id
 export const getJoinStudentByClassId = async (req, res) => {
     const { classId } = req.params;
     try {
-        const students = await User.find({ role: "student", classes: { $elemMatch: { classId: classId, status: 'join' } } })
+        const students = await Class.findById(classId)
+            .populate({
+                path: 'students.studentId',
+                select: 'firstName email gender profileUrl'
+            })
+            .populate('courseId', 'courseName')
+            .select('students classTiming courseId')
         res.status(200).json(students);
     } catch (error) {
         console.error(error);
@@ -37,7 +45,7 @@ export const addFile = async (req, res) => {
     try {
         const { title, type, classId } = req.body;
         const file = req.file;
-
+        //  console.log("File: ", file);
         if (!file) {
             return res.status(400).json({ error: 'No file provided' });
         }
@@ -93,7 +101,15 @@ export const getFilesByClassId = async (req, res) => {
     try {
         const files = await File.find({
             classId: classId
-        });
+        })
+            .populate({
+                'path': 'classId',
+                select: 'classTiming',
+                populate: {
+                    path: 'courseId',
+                    select: 'courseName'
+                }
+            })
         if (!files) {
             return res.status(404).json({ message: "No files found for this class" });
         }
@@ -154,3 +170,30 @@ export const getFilesByClassIdAndStudentId = async (req, res) => {
         return res.status(500).json({ message: "Internal server error" });
     }
 }
+
+// addd class link using student id
+export const addClassLinkToStudent = async (req, res) => {
+    const { classLink } = req.body;
+    const { studentId } = req.params
+    try {
+        const updatedClass = await Class.findOneAndUpdate(
+            { 'students.studentId': studentId },
+            { $set: { 'students.$.classLink': classLink } },
+            { new: true }
+        ).populate('students.studentId', 'firstName email');
+
+        if (!updatedClass) {
+            return res.status(404).json({ message: 'Class with this student not found' });
+        }
+
+        res.status(200).json({
+            message: 'Class link updated successfully',
+            updatedClass
+        });
+    } catch (error) {
+        console.error('Error updating class link:', error);
+        res.status(500).json({ message: 'Internal Server Error' });
+    }
+};
+
+
