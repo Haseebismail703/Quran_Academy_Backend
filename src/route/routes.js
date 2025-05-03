@@ -3,8 +3,8 @@ import { signupUser, signinUser, adminLogin, updateUser, logOut,updateStatusAndF
 import { creatReview, getReview } from '../controler/reviewController.js'
 import { billingAddress } from "../controler/billingControler.js"
 import { getClassByTeacherId, getJoinStudentByClassId, addFile, deleteFile,getFilesByClassId, addClassLinkToStudent } from "../controler/teacherController.js"
-import { createPackage, getAllPackages, buyPackage, getAllPackageStudentId, deletePackage } from "../controler/packageController.js"
-import { getAllClassesByStudentId, getPackageByStudentId } from "../controler/studentController.js"
+import { createPackage, getAllPackages, buyPackage, deletePackage } from "../controler/packageController.js"
+import { getAllClassesByStudentId, getPackageByStudentId,getPaymentHistory } from "../controler/studentController.js"
 import { createClass, getAllClasses, addStudentToClass, removeStudentFromClass, getWaitingStudentCourseId, updateClass, deleteClass, getAllTeacher, getAllUserData, createCourse, getAllCourses, UpdateClassLink, updateCourseDetails, deleteCourse, getClassWithStudents, getCourseAndWaitingStudent } from '../controler/adminController.js'
 
 import multer from 'multer'
@@ -48,7 +48,6 @@ router.post('/createBillingAdress', billingAddress);
 router.post('/createPackage', createPackage);
 router.get('/getAllPackages', getAllPackages);
 router.post('/buyPackage', buyPackage);
-router.get('/getAllPackageStudentId', getAllPackageStudentId)
 router.delete('/deletePackage/:packageId', deletePackage);
 // teacher route 
 router.get('/getClassByTeacherId/:teacherId', getClassByTeacherId);
@@ -61,7 +60,7 @@ router.get('/getAllAttendance/:classId/:date',getAllAttendance)
 router.get('/getAllClassesByStudentId/:studentId', getAllClassesByStudentId);
 router.get('/getFilesByClassId/:classId', getFilesByClassId);
 router.get('/getPackageByStudentId/:studentId', getPackageByStudentId);
-
+router.get('/paymentHistory/:studentId', getPaymentHistory);
 // attendece route 
 router.post('/markAttendance',markAttendance)
 router.get('/getStudentAttendanceHistory/:studentId/classId/:classId',getStudentAttendanceHistory)

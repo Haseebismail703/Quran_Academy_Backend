@@ -48,47 +48,101 @@ export const getFilesByClassId = async (req, res) => {
 }
 // get package by student id 
 export const getPackageByStudentId = async (req, res) => {
-    try {
-      const { studentId } = req.params;
-  
-      const payments = await Package.find({ studentId })
-        .populate("courseId", "courseName");
-  
-      const currentDate = new Date();
-  
-      const updatedPayments = payments.map((payment) => {
-        const endDate = new Date(payment.monthEnd);
-        const isMonthEnded = endDate < currentDate;
-  
-        // Calculate days difference
-        const diffInMs = endDate - currentDate;
-        const days = Math.ceil(diffInMs / (1000 * 60 * 60 * 24)); // Total days (may be negative)
-  
-        let daysStatus;
-        if (days > 0) {
-          daysStatus = `${days} din baqi hain`;
-        } else if (days === 0) {
-          daysStatus = `Aaj last din hai`;
-        } else {
-          daysStatus = `${Math.abs(days)} din guzr chuke hain`;
+  try {
+    const { studentId } = req.params;
+    const currentDate = new Date();
+
+    const packages = await Package.find({ studentId }).populate("courseId", "courseName");
+
+    const updatedPackages = await Promise.all(
+      packages.map(async (pkg) => {
+        const endDate = new Date(pkg.monthEnd);
+        const startDate = new Date(pkg.monthStart);
+        const isExpired = endDate < currentDate;
+
+        // Update paymentStatus if expired
+        if (isExpired && pkg.paymentStatus === 'completed') {
+          pkg.paymentStatus = 'inCompleted';
+          await pkg.save();
         }
-  
+
+        // Days remaining text
+        const diffInMs = endDate - currentDate;
+        const days = Math.ceil(diffInMs / (1000 * 60 * 60 * 24));
+        let daysStatus = '';
+        if (days > 0) {
+          daysStatus = `${days} days remaining`;
+        } else if (days === 0) {
+          daysStatus = `Today is the last day`;
+        } else {
+          daysStatus = `${Math.abs(days)} days passed, please pay your fee`;
+        }
+
+        // === Accurate pending months logic ===
+        let pendingMonths = 0;
+        let totalPendingFee = 0;
+
+        if (pkg.paymentStatus === 'inCompleted') {
+          const paidUntil = new Date(pkg.lastPaymentDate || pkg.monthStart);
+          
+          // Calculate full months between paidUntil and currentDate
+          let yearDiff = currentDate.getFullYear() - paidUntil.getFullYear();
+          let monthDiff = currentDate.getMonth() - paidUntil.getMonth();
+          let months = yearDiff * 12 + monthDiff;
+
+          // Adjust if current day is before the paid day
+          if (currentDate.getDate() < paidUntil.getDate()) {
+            months -= 1;
+          }
+
+          pendingMonths = Math.max(months, 0);
+          totalPendingFee = pendingMonths * pkg.coursePrice;
+        }
+
         return {
-          ...payment.toObject(),
-          canPay:
-            payment.paymentStatus === "inCompleted" ||
-            (isMonthEnded && payment.paymentStatus === "inCompleted"),
+          ...pkg.toObject(),
+          canPay: pkg.paymentStatus === "inCompleted",
           daysRemainingText: daysStatus,
-          daysRemaining: days // can be positive or negative
+          pendingMonths,
+          totalPendingFee,
         };
-      });
+      })
+    );
+
+    res.status(200).json(updatedPackages);
+  } catch (err) {
+    console.error("Error fetching package data:", err);
+    res.status(500).json({ message: "Server Error" });
+  }
+};
+
+// get payment history by student id
+export let getPaymentHistory = async (req, res) => {
+  const { studentId } = req.params;  // Extract studentId from route parameters
   
-      res.status(200).json(updatedPayments);
-    } catch (err) {
-      console.error("Error fetching payments:", err);
-      res.status(500).json({ message: "Server Error" });
+  try {
+    // Find the student in the payments collection using studentId
+    const paymentHistory = await Package.find({ studentId })
+    .populate('courseId', 'courseName') 
+      .sort({ paymentDate: -1 }); 
+    
+    // Check if payment history exists for the student
+    if (!paymentHistory || paymentHistory.length === 0) {
+      return res.status(404).json({ error: "No payment history found for this student" });
     }
-  };
+
+    // Send the payment history as response
+    res.status(200).json({
+      message: "Payment history retrieved successfully",
+      paymentHistory
+    });
+  } catch (error) {
+    console.error("Error fetching payment history:", error);
+    res.status(500).json({ error: "Internal Server Error", details: error.message });
+  }
+};
+
+
   
   
 

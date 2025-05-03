@@ -37,11 +37,11 @@ let packageSchema = new mongoose.Schema({
         enum: ['completed', 'inCompleted']
     },
     monthStart: {
-        type: mongoose.Schema.Types.Number,
+        type: mongoose.Schema.Types.Date,
         default: 0
     },
     monthEnd: {
-        type: mongoose.Schema.Types.Number,
+        type: mongoose.Schema.Types.Date,
         default: 0
     },
     

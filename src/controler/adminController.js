@@ -1,7 +1,7 @@
 import Course from '../model/courseModel.js'
 import User from "../model/authModel.js";
 import Class from '../model/classModel.js'
-
+import Package from '../model/packageModel.js'
 
 // create Course
 export let createCourse = async (req, res) => {
@@ -149,56 +149,36 @@ export let addStudentToClass = async (req, res) => {
   const { classId, studentId, timing } = req.body;
 
   try {
-    // 1. Check if the student exists
     const student = await User.findById(studentId);
-    if (!student) {
-      return res.status(404).json({ error: "Student not found" });
-    }
+    if (!student) return res.status(404).json({ error: "Student not found" });
+    if (student.role !== 'student') return res.status(400).json({ error: "Only students are allowed to join classes" });
 
-    // 2. Ensure the user has a 'student' role
-    if (student.role !== 'student') {
-      return res.status(400).json({ error: "Only students are allowed to join classes" });
-    }
-
-    // 3. Check if the class exists
     const classData = await Class.findById(classId);
-    if (!classData) {
-      return res.status(404).json({ error: "Class not found" });
-    }
-   // check time is alredy used 
-    const isTimeSlotUsed = classData.students.some(
-      (s) => s.studentTiming === timing
-    );
-    if (isTimeSlotUsed) {
-      return res.status(400).json({ error: "Time slot is already used" });
-    }
-    
-    // 4. Check if the student is already added to this class
+    if (!classData) return res.status(404).json({ error: "Class not found" });
+
+    const isTimeSlotUsed = classData.students.some((s) => s.studentTiming === timing);
+    if (isTimeSlotUsed) return res.status(400).json({ error: "Time slot is already used" });
+
     const isStudentAlreadyInClass = classData.students.some(
       (s) => s.studentId.toString() === student._id.toString()
     );
-    if (isStudentAlreadyInClass) {
-      return res.status(400).json({ error: "Student is already in the class" });
-    }
+    if (isStudentAlreadyInClass) return res.status(400).json({ error: "Student is already in the class" });
 
-    // 5. Find the 'waiting' entry in student.classes
     const waitingEntry = student.classes.find(
       (cls) => cls.status === 'waiting' && cls.classId === null
     );
-
-    if (waitingEntry) {
-      // Update the existing 'waiting' entry
-      waitingEntry.classId = classId;
-      waitingEntry.status = 'join';
-      waitingEntry.timing = timing;
-    } else {
+    if (!waitingEntry) {
       return res.status(400).json({ error: "No waiting status found to update" });
     }
 
-    // Save updated student data
+    // Update the student's class status
+    waitingEntry.classId = classId;
+    waitingEntry.status = 'join';
+    waitingEntry.timing = timing;
+
     await student.save();
 
-    // 6. Add student to class
+    // Add student to class
     classData.students.push({
       studentId: student._id,
       studentTiming: timing,
@@ -206,18 +186,43 @@ export let addStudentToClass = async (req, res) => {
     });
     await classData.save();
 
+    // Calculate start and end dates
+    const courseId = waitingEntry.courseId;
+    const currentDate = new Date();
+    const startDate = currentDate.toISOString().split("T")[0]; // Today's date in YYYY-MM-DD format
+    
+    // Set the end date to the same day in the next month
+    const endDateObj = new Date(currentDate);
+    endDateObj.setMonth(endDateObj.getMonth() + 1); // Move to next month
+    const endDate = endDateObj.toISOString().split("T")[0]; // Same day of next month in YYYY-MM-DD format
+
+    console.log("Start Date:", startDate);
+    console.log("End Date:", endDate); // Logs the calculated dates
+
+    // Update package document
+    await Package.updateOne(
+      { studentId, courseId },
+      { 
+        $set: { 
+          monthStart: startDate,
+          monthEnd: endDate,
+          updatedAt: new Date() 
+        } 
+      },
+      { upsert: true } // This ensures the document is created if it doesn't already exist
+    );
+
     res.status(200).json({
       message: "Student successfully added to class",
       class: classData
     });
+
   } catch (error) {
     console.error("Error adding student to class:", error);
     res.status(500).json({ error: "Internal Server Error", details: error.message });
   }
 };
 // remove the student from class
-
-
 export const removeStudentFromClass = async (req, res) => {
   const { classId, studentId } = req.body;
   console.log(req.body)
@@ -468,12 +473,7 @@ export let getCourseAndWaitingStudent = async (req, res) => {
   try {
     const courses = await Course.find();
     const waitingStudents = await User.find(
-     { role : 'student',
-      classes: {
-        $elemMatch: {
-          status: 'waiting'
-        }
-      }}
+     { role : 'student'}
     );
     res.status(200).json({ courses, waitingStudents });
   } catch (error) {
