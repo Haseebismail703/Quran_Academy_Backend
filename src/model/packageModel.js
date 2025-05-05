@@ -38,11 +38,11 @@ let packageSchema = new mongoose.Schema({
     },
     monthStart: {
         type: mongoose.Schema.Types.Date,
-        default: 0
+        default: new Date(0)
     },
     monthEnd: {
         type: mongoose.Schema.Types.Date,
-        default: 0
+        default: new Date(0)
     },
     
 }, {

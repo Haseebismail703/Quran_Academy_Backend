@@ -190,62 +190,129 @@ let adminLogin = async (req, res) => {
     }
 }
 // update user 
-let updateUser = async (req, res) => {
+const updateUser = async (req, res) => {
+    console.log('Update user:', req.file); // Check if file is being received
+
     try {
-      const { firstName, lastName, currentPassword, newPassword } = req.body;
+        const { firstName, lastName } = req.body; // Removed password-related fields
+        const { userId } = req.params;
+        const file = req.file;
+
+        // Find user
+        const user = await User.findById(userId);
+        if (!user) return res.status(404).json({ message: 'User not found' });
+
+        // Check for duplicate name only if both fields are being updated
+        if (
+            firstName &&
+            lastName &&
+            user.firstName === firstName &&
+            user.lastName === lastName
+        ) {
+            return res
+                .status(400)
+                .json({ message: 'First name and last name already exist' });
+        }
+
+        // Update only the provided fields
+        if (firstName) user.firstName = firstName;
+        if (lastName) user.lastName = lastName;
+
+        // Upload image if provided
+        if (file) {
+            const uploadResult = await new Promise((resolve, reject) => {
+                const uploadStream = cloudinary.uploader.upload_stream(
+                    {
+                        folder: 'user_profiles',
+                        resource_type: 'auto',
+                    },
+                    (error, result) => {
+                        if (error) {
+                            reject(error);
+                        } else {
+                            resolve(result);
+                        }
+                    }
+                );
+
+                // Pipe the file buffer into the upload stream
+                uploadStream.end(file.buffer); // Using the file buffer instead of file.path
+            });
+
+            // Set the uploaded image URL to the user's profile
+            user.profileUrl = uploadResult.secure_url;
+        }
+
+        await user.save();
+
+        res.status(200).json({ message: 'Profile updated successfully', user });
+    } catch (error) {
+        console.error('Update Profile Error:', error);
+        res.status(500).json({ message: 'Internal server error', error: error.message });
+    }
+};
+
+// update password
+const updatePassword = async (req, res) => {
+    try {
       const { userId } = req.params;
-      const file = req.file; // Assuming you're using multer middleware
+      const { currentPassword, newPassword } = req.body;
   
-      // Fetch user
+      // Check if the current password and new password are provided
+      if (!currentPassword || !newPassword) {
+        return res.status(400).json({
+          message: 'Both current password and new password are required',
+        });
+      }
+  
+      // Find user
       const user = await User.findById(userId);
-      if (!user) return res.status(404).json({ message: "User not found" });
+      if (!user) return res.status(404).json({ message: 'User not found' });
   
-      // Check for duplicate name
-      if (user.firstName === firstName && user.lastName === lastName) {
-        return res.status(400).json({ message: "First name and last name already exist" });
-      }
+      // Log current password and stored password
+      console.log('Current Password:', currentPassword); // Log the current password from the request
+      console.log('Stored Password:', user.password); // Log the stored password from the database
   
-      // Password validation
-      if (!currentPassword) {
-        return res.status(400).json({ message: "Current password is required" });
-      }
-  
+      // Check if current password matches the stored password
       const isMatch = await bcrypt.compare(currentPassword, user.password);
       if (!isMatch) {
-        return res.status(401).json({ message: "Current password is incorrect" });
+        return res.status(401).json({ message: 'Current password is incorrect' });
       }
   
-      if (newPassword && newPassword === currentPassword) {
-        return res.status(400).json({ message: "New password cannot be the same as current password" });
-      }
-  
-      // Update name fields
-      user.firstName = firstName || user.firstName;
-      user.lastName = lastName || user.lastName;
-  
-      // Update password if new one provided
-      if (newPassword) {
-        const hashedNewPassword = await bcrypt.hash(newPassword, 10);
-        user.password = hashedNewPassword;
-      }
-  
-      // Upload profile picture if provided
-      if (file) {
-        const uploadResult = await cloudinary.uploader.upload(file.path, {
-          folder: 'user_profiles',
+      // Check if new password is different from the current one
+      if (newPassword === currentPassword) {
+        return res.status(400).json({
+          message: 'New password cannot be the same as current password',
         });
-        user.profileUrl = uploadResult.secure_url;
       }
   
+      // Hash the new password
+      const hashedNewPassword = await bcrypt.hash(newPassword, 10); // 10 salt rounds
+      user.password = hashedNewPassword;
+  
+      // Save the updated user data
       await user.save();
   
-      res.status(200).json({ message: "Profile updated successfully", user });
-  
+      res.status(200).json({ message: 'Password updated successfully' });
     } catch (error) {
-      console.error("Update Profile Error:", error);
-      res.status(500).json({ message: "Internal server error", error: error.message });
+      console.error('Password Update Error:', error);
+      res.status(500).json({ message: 'Internal server error', error: error.message });
     }
   };
+  
+// get profile using id 
+let getProfile = async(req,res) =>{
+    const {userId} = req.params
+    try {
+        let user = await User.findById(userId)
+        return  res.status(200).json(user);
+    } catch (error) {
+        console.error("Logout Error:", error);
+        res.status(500).json({ message: "Internal server error" });
+    }
+}
+
+
 
 // logout api
 let logOut = async (req, res) => {
@@ -284,4 +351,4 @@ let updateStatusAndFirstName = async (req, res) => {
 };
 
 
-export { signupUser, signinUser, adminLogin, updateUser, logOut,updateStatusAndFirstName };
+export { signupUser, signinUser, adminLogin, updateUser, logOut, updateStatusAndFirstName ,updatePassword,getProfile};

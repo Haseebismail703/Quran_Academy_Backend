@@ -145,5 +145,4 @@ let deletePackage = async (req, res) => {
   }
 }
 
-
 export { createPackage, getAllPackages, buyPackage, deletePackage };

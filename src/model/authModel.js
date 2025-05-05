@@ -18,7 +18,8 @@ const userSchema = new Schema({
     },
     password: {
         type: Schema.Types.String,
-        required: true
+        required: true ,
+        // select: false
     },
     role: {
         type: Schema.Types.String,

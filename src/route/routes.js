@@ -1,5 +1,5 @@
 import express from "express";
-import { signupUser, signinUser, adminLogin, updateUser, logOut,updateStatusAndFirstName } from '../controler/authController.js'
+import { signupUser, signinUser, adminLogin, updateUser, logOut,updateStatusAndFirstName, updatePassword, getProfile } from '../controler/authController.js'
 import { creatReview, getReview } from '../controler/reviewController.js'
 import { billingAddress } from "../controler/billingControler.js"
 import { getClassByTeacherId, getJoinStudentByClassId, addFile, deleteFile,getFilesByClassId, addClassLinkToStudent } from "../controler/teacherController.js"
@@ -36,7 +36,9 @@ router.post('/signupUser', signupUser);
 router.post('/signinUser', signinUser);
 router.post('/adminLogin', adminLogin);
 router.put('/updateUser/:userId',upload.single('file'), updateUser);
+router.put('/update-password/:userId', updatePassword);
 router.put('/updateStatusAndFirstName/:userId', updateStatusAndFirstName);
+router.get('/getProfile/:userId',getProfile)
 router.post('/logOut', logOut)
 // review routes
 router.post('/creatReview', creatReview);

@@ -59,9 +59,10 @@ export const getPackageByStudentId = async (req, res) => {
         const endDate = new Date(pkg.monthEnd);
         const startDate = new Date(pkg.monthStart);
         const isExpired = endDate < currentDate;
+        const isDefaultStartDate = new Date(pkg.monthStart).getTime() === 0; // Check if the start date is "1970-01-01"
 
-        // Update paymentStatus if expired
-        if (isExpired && pkg.paymentStatus === 'completed') {
+        // Update paymentStatus if expired and not the default start date
+        if (isExpired && pkg.paymentStatus === 'completed' && !isDefaultStartDate) {
           pkg.paymentStatus = 'inCompleted';
           await pkg.save();
         }
@@ -78,11 +79,11 @@ export const getPackageByStudentId = async (req, res) => {
           daysStatus = `${Math.abs(days)} days passed, please pay your fee`;
         }
 
-        // === Accurate pending months logic ===
+        // Accurate pending months logic
         let pendingMonths = 0;
         let totalPendingFee = 0;
 
-        if (pkg.paymentStatus === 'inCompleted') {
+        if (pkg.paymentStatus === 'inCompleted' && !isDefaultStartDate) {
           const paidUntil = new Date(pkg.lastPaymentDate || pkg.monthStart);
           
           // Calculate full months between paidUntil and currentDate
@@ -115,6 +116,7 @@ export const getPackageByStudentId = async (req, res) => {
     res.status(500).json({ message: "Server Error" });
   }
 };
+
 
 // get payment history by student id
 export let getPaymentHistory = async (req, res) => {
