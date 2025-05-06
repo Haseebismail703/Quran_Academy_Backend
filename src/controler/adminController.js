@@ -2,7 +2,7 @@ import Course from '../model/courseModel.js'
 import User from "../model/authModel.js";
 import Class from '../model/classModel.js'
 import Package from '../model/packageModel.js'
-
+import careerModel from '../model/careerModel.js';
 // create Course
 export let createCourse = async (req, res) => {
   try {
@@ -190,7 +190,7 @@ export let addStudentToClass = async (req, res) => {
     const courseId = waitingEntry.courseId;
     const currentDate = new Date();
     const startDate = currentDate.toISOString().split("T")[0]; // Today's date in YYYY-MM-DD format
-    
+
     // Set the end date to the same day in the next month
     const endDateObj = new Date(currentDate);
     endDateObj.setMonth(endDateObj.getMonth() + 1); // Move to next month
@@ -202,12 +202,12 @@ export let addStudentToClass = async (req, res) => {
     // Update package document
     await Package.updateOne(
       { studentId, courseId },
-      { 
-        $set: { 
+      {
+        $set: {
           monthStart: startDate,
           monthEnd: endDate,
-          updatedAt: new Date() 
-        } 
+          updatedAt: new Date()
+        }
       },
       { upsert: true } // This ensures the document is created if it doesn't already exist
     );
@@ -250,8 +250,8 @@ export const removeStudentFromClass = async (req, res) => {
       (cls) => cls.classId.toString() === classId
     );
     if (studentClassEntry) {
-      studentClassEntry.classId = null; 
-      studentClassEntry.status = 'waiting'; 
+      studentClassEntry.classId = null;
+      studentClassEntry.status = 'waiting';
       studentClassEntry.timing = '';
     } else {
       return res.status(404).json({ error: "Student not found in classes" });
@@ -364,39 +364,39 @@ export let getWaitingStudentCourseId = async (req, res) => {
 
 // get all class by  class id 
 export const getClassWithStudents = async (req, res) => {
-    const { classId } = req.params;
+  const { classId } = req.params;
 
-    try {
-        const classData = await Class.findById(classId)
-            .populate({
-                path: 'courseId',
-                select: 'courseName'
-            })
-            .populate({
-                path: 'teacherId',
-                select: 'firstName lastName email profilePicture' 
-            })
-            .populate({
-                path: 'students.studentId',
-                select: 'firstName lastName email gender profileUrl status' 
-            });
-           
-        if (!classData) {
-            return res.status(404).json({ message: "Class not found" });
-        }
+  try {
+    const classData = await Class.findById(classId)
+      .populate({
+        path: 'courseId',
+        select: 'courseName'
+      })
+      .populate({
+        path: 'teacherId',
+        select: 'firstName lastName email profilePicture'
+      })
+      .populate({
+        path: 'students.studentId',
+        select: 'firstName lastName email gender profileUrl status'
+      });
 
-
-        res.status(200).json({
-             classData
-        });
-
-    } catch (error) {
-        console.error("Error in getClassWithStudents:", error);
-        res.status(500).json({
-            message: "Internal server error",
-            error: error.message
-        });
+    if (!classData) {
+      return res.status(404).json({ message: "Class not found" });
     }
+
+
+    res.status(200).json({
+      classData
+    });
+
+  } catch (error) {
+    console.error("Error in getClassWithStudents:", error);
+    res.status(500).json({
+      message: "Internal server error",
+      error: error.message
+    });
+  }
 };
 // update course deatil 
 export let updateClass = async (req, res) => {
@@ -473,7 +473,7 @@ export let getCourseAndWaitingStudent = async (req, res) => {
   try {
     const courses = await Course.find();
     const waitingStudents = await User.find(
-     { role : 'student'}
+      { role: 'student' }
     );
     res.status(200).json({ courses, waitingStudents });
   } catch (error) {
@@ -481,3 +481,53 @@ export let getCourseAndWaitingStudent = async (req, res) => {
     res.status(500).json({ error: "Failed to fetch courses and waiting students" });
   }
 }
+
+
+// crete Career  
+export let createCareer = async (req, res) => {
+  // console.log(req.body);
+  try {
+    // Check for existing email in the database
+    const checkEmail = await careerModel.find({ email: req.body?.email });
+
+    // If email already exists, return a 400 response
+    if (checkEmail.length > 0) {
+      return res.status(400).json({ message: "Email already used" });
+    }
+
+    // Create new career entry
+    const career = new careerModel(req.body);
+
+    // Save the career
+    await career.save();
+
+    // Respond with the created career data
+    return res.status(200).json(career);
+  } catch (error) {
+    // Catch any errors and return them
+    return res.status(400).json({ error: error.message });
+  }
+};
+
+
+// get all career 
+export let getAllCareer = async (req, res) => {
+  try {
+    const getCareer = await careerModel.find().sort({createdAt : -1});
+    return res.status(200).json(getCareer);
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
+}
+
+
+// get all user  // not use 
+export let allUser =  async(req,res) =>{ 
+  try {
+      const users = await User.find({}, { password: 0 });
+      res.status(200).json(users);
+  } catch (error) {
+      res.status(500).json({ error: "Server error" });
+  }
+
+} 

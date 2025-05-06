@@ -191,7 +191,7 @@ let adminLogin = async (req, res) => {
 }
 // update user 
 const updateUser = async (req, res) => {
-    console.log('Update user:', req.file); // Check if file is being received
+    // console.log('Update user:', req.file); // Check if file is being received
 
     try {
         const { firstName, lastName } = req.body; // Removed password-related fields
@@ -254,6 +254,7 @@ const updateUser = async (req, res) => {
 
 // update password
 const updatePassword = async (req, res) => {
+    console.log(req.params,req.body)
     try {
       const { userId } = req.params;
       const { currentPassword, newPassword } = req.body;

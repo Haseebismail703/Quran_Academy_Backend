@@ -5,10 +5,11 @@ import { billingAddress } from "../controler/billingControler.js"
 import { getClassByTeacherId, getJoinStudentByClassId, addFile, deleteFile,getFilesByClassId, addClassLinkToStudent } from "../controler/teacherController.js"
 import { createPackage, getAllPackages, buyPackage, deletePackage } from "../controler/packageController.js"
 import { getAllClassesByStudentId, getPackageByStudentId,getPaymentHistory } from "../controler/studentController.js"
-import { createClass, getAllClasses, addStudentToClass, removeStudentFromClass, getWaitingStudentCourseId, updateClass, deleteClass, getAllTeacher, getAllUserData, createCourse, getAllCourses, UpdateClassLink, updateCourseDetails, deleteCourse, getClassWithStudents, getCourseAndWaitingStudent } from '../controler/adminController.js'
+import { createClass, getAllClasses, addStudentToClass, removeStudentFromClass, getWaitingStudentCourseId, updateClass, deleteClass, getAllTeacher, getAllUserData, createCourse, getAllCourses, UpdateClassLink, updateCourseDetails, deleteCourse, getClassWithStudents, getCourseAndWaitingStudent, createCareer, getAllCareer, allUser } from '../controler/adminController.js'
 
 import multer from 'multer'
 import { getAllAttendance, getStudentAttendanceHistory, getStudentAttendence, markAttendance, updateAttendance } from "../controler/attendenceController.js";
+import { getMessage, message } from "../controler/chatController.js";
 const router = express.Router();
 
 let storage = multer.memoryStorage();
@@ -31,6 +32,9 @@ router.get('/getAllUserData', getAllUserData);
 router.get('/getAllTeacher', getAllTeacher)
 router.put('/UpdateClassLink/:studentId', UpdateClassLink)
 router.get('/getCourseAndWaitingStudent', getCourseAndWaitingStudent)
+router.post('/createCareer',createCareer)
+router.get('/getAllCareer',getAllCareer)
+router.get('/allUser',allUser)
 // auth routes
 router.post('/signupUser', signupUser);
 router.post('/signinUser', signinUser);
@@ -68,6 +72,11 @@ router.post('/markAttendance',markAttendance)
 router.get('/getStudentAttendanceHistory/:studentId/classId/:classId',getStudentAttendanceHistory)
 router.put('/updateAttendance',updateAttendance)
 router.get('/getStudentAttendence/:studentId',getStudentAttendence)
+
+// chat route
+router.post('/messages',message)
+router.get("/messages/:senderId/:receiverId",getMessage)
+
 export default router
 
 
