@@ -27,18 +27,19 @@ const activeUsers = new Map();
 
 // Socket.IO Connection Handler
 io.on("connection", (socket) => {
-  console.log("User connected:", socket.id);
+  // console.log("User connected:", socket.id);
 
   socket.on("register", (userId) => {
     activeUsers.set(userId, socket.id);
-    console.log(`User registered: ${userId}`);
+    // console.log(`User registered: ${userId}`);
   });
 
-  socket.on("sendMessage", async ({ senderId, receiverId, content }) => {
+  socket.on("sendMessage", async ({ sender, receiver, content }) => {
+    console.log(sender, receiver, content);
     try {
-      const message = await MessageModel.create({ sender: senderId, receiver: receiverId, content });
-
-      const receiverSocket = activeUsers.get(receiverId);
+      const message = await MessageModel.create({ sender, receiver, content });
+  
+      const receiverSocket = activeUsers.get(receiver);
       if (receiverSocket) {
         io.to(receiverSocket).emit("receiveMessage", message);
       }
@@ -46,6 +47,7 @@ io.on("connection", (socket) => {
       console.error("Error sending message:", error);
     }
   });
+  
 
   socket.on("disconnect", () => {
     for (const [userId, socketId] of activeUsers.entries()) {
