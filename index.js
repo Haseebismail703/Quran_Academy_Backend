@@ -6,7 +6,7 @@ import route from './src/route/routes.js';
 import cookieParser from 'cookie-parser';
 import swaggerJsdoc from "swagger-jsdoc";
 import swaggerUi from "swagger-ui-express";
-import http from 'http'
+import http from 'http';
 import { Server } from 'socket.io';
 import MessageModel from './src/model/chatModel.js';
 
@@ -17,7 +17,7 @@ const server = http.createServer(app);
 
 const io = new Server(server, {
   cors: {
-    origin: "http://localhost:5173", 
+    origin: "http://localhost:5173",
     methods: ["GET", "POST"],
     credentials: true,
   }
@@ -25,20 +25,16 @@ const io = new Server(server, {
 
 const activeUsers = new Map();
 
-// Socket.IO Connection Handler
+// ✅ Socket.IO Connection Handler
 io.on("connection", (socket) => {
-  // console.log("User connected:", socket.id);
-
   socket.on("register", (userId) => {
     activeUsers.set(userId, socket.id);
-    // console.log(`User registered: ${userId}`);
   });
 
   socket.on("sendMessage", async ({ sender, receiver, content }) => {
-    console.log(sender, receiver, content);
     try {
       const message = await MessageModel.create({ sender, receiver, content });
-  
+
       const receiverSocket = activeUsers.get(receiver);
       if (receiverSocket) {
         io.to(receiverSocket).emit("receiveMessage", message);
@@ -47,7 +43,29 @@ io.on("connection", (socket) => {
       console.error("Error sending message:", error);
     }
   });
-  
+
+  // ✅ Handle read messages
+  socket.on("markAsRead", async ({ sender, receiver }) => {
+    try {
+      const unreadMessages = await MessageModel.find({
+        sender,
+        receiver,
+        read: false
+      });
+
+      for (const message of unreadMessages) {
+        message.read = true;
+        await message.save();
+
+        const readerSocket = activeUsers.get(receiver);
+        if (readerSocket) {
+          io.to(readerSocket).emit("messageRead", { messageId: message._id });
+        }
+      }
+    } catch (error) {
+      console.error("Error marking messages as read:", error);
+    }
+  });
 
   socket.on("disconnect", () => {
     for (const [userId, socketId] of activeUsers.entries()) {
@@ -60,7 +78,7 @@ io.on("connection", (socket) => {
   });
 });
 
-// Middleware and Route Setup
+// ✅ Middleware and Route Setup
 app.use(express.json());
 app.use(cookieParser());
 const corsOptions = {
@@ -71,17 +89,17 @@ const corsOptions = {
 };
 app.use(cors(corsOptions));
 
-// DB Connection
+// ✅ DB Connection
 const Db = Db_connection.connection;
 Db.on('error', console.error.bind(console, 'Error connection'));
 Db.once('open', () => {
   console.log('Db connected');
 });
 
-// Routes
+// ✅ Routes
 app.use('/api', route);
 
-// Swagger Setup
+// ✅ Swagger Setup
 const options = {
   definition: {
     openapi: "3.0.0",
@@ -110,7 +128,7 @@ const options = {
 const swaggerSpec = swaggerJsdoc(options);
 app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
-// Server Start
+// ✅ Start Server
 server.listen(PORT, () => {
   console.log(`Server running at http://localhost:${PORT}`);
   console.log(`Swagger Docs available at http://localhost:${PORT}/docs`);

@@ -9,7 +9,7 @@ import { createClass, getAllClasses, addStudentToClass, removeStudentFromClass, 
 
 import multer from 'multer'
 import { getAllAttendance, getStudentAttendanceHistory, getStudentAttendence, markAttendance, updateAttendance } from "../controler/attendenceController.js";
-import { getMessage, message } from "../controler/chatController.js";
+import { getMessage, getStudentsInChat, getTeacherInTheChat, message } from "../controler/chatController.js";
 const router = express.Router();
 
 let storage = multer.memoryStorage();
@@ -76,6 +76,8 @@ router.get('/getStudentAttendence/:studentId',getStudentAttendence)
 // chat route
 router.post('/messages',message)
 router.get("/messages/:senderId/:receiverId",getMessage)
+router.get('/getTeacherInChat/:studentId',getTeacherInTheChat)
+router.get('/getStudentsInChat/:teacherId',getStudentsInChat)
 
 export default router
 
