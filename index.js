@@ -18,7 +18,7 @@ const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
     origin: "http://localhost:5173",
-    methods: ["GET", "POST"],
+    methods: ["GET", "POST", 'PUT', 'DELETE'],
     credentials: true,
   }
 });
@@ -30,7 +30,7 @@ io.on("connection", (socket) => {
   socket.on("register", (userId) => {
     activeUsers.set(userId, socket.id);
   });
-
+console.log("connect",socket.id)
   socket.on("sendMessage", async ({ sender, receiver, content }) => {
     try {
       const message = await MessageModel.create({ sender, receiver, content });
@@ -45,27 +45,26 @@ io.on("connection", (socket) => {
   });
 
   // ✅ Handle read messages
-  socket.on("markAsRead", async ({ sender, receiver }) => {
-    try {
-      const unreadMessages = await MessageModel.find({
-        sender,
-        receiver,
-        read: false
+ // Add this to your socket.io implementation
+socket.on('markAsRead', async ({ sender, receiver, messageId }) => {
+  try {
+      await MessageModel.updateMany(
+          {
+              sender,
+              receiver,
+              read: false
+          },
+          { $set: { read: true } }
+      );
+      
+      // Notify the sender that messages were read
+      io.to(sender).emit('messageRead', { 
+          receiverId: receiver 
       });
-
-      for (const message of unreadMessages) {
-        message.read = true;
-        await message.save();
-
-        const readerSocket = activeUsers.get(receiver);
-        if (readerSocket) {
-          io.to(readerSocket).emit("messageRead", { messageId: message._id });
-        }
-      }
-    } catch (error) {
-      console.error("Error marking messages as read:", error);
-    }
-  });
+  } catch (error) {
+      console.error('Error marking messages as read:', error);
+  }
+});
 
   socket.on("disconnect", () => {
     for (const [userId, socketId] of activeUsers.entries()) {
@@ -83,7 +82,7 @@ app.use(express.json());
 app.use(cookieParser());
 const corsOptions = {
   origin: 'http://localhost:5173',
-  methods: ['GET', 'POST'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true,
 };
