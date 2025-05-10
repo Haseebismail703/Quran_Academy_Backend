@@ -50,69 +50,69 @@ let getMessage = async (req, res) => {
   };
    
 // Get teachers and admins for student chat with unread counts
-let getTeacherInTheChat = async (req, res) => {
-    const { studentId } = req.params;
+// let getTeacherInTheChat = async (req, res) => {
+//     const { studentId } = req.params;
 
-    try {
-        // 1. Find all classes where the student is enrolled and populate teacher info
-        const classes = await Class.find({ 
-            'students.studentId': studentId,
-            'status': 'join'
-        })
-        .populate({
-            path: 'teacherId',
-            select: 'firstName lastName email gender role profileUrl'
-        })
-        .exec();
+//     try {
+//         // 1. Find all classes where the student is enrolled and populate teacher info
+//         const classes = await Class.find({ 
+//             'students.studentId': studentId,
+//             'status': 'join'
+//         })
+//         .populate({
+//             path: 'teacherId',
+//             select: 'firstName lastName email gender role profileUrl'
+//         })
+//         .exec();
 
-        // 2. Get all admin users
-        const admins = await User.find({ role: 'admin' })
-            .select('firstName lastName email gender role profileUrl')
-            .exec();
+//         // 2. Get all admin users
+//         const admins = await User.find({ role: 'admin' })
+//             .select('firstName lastName email gender role profileUrl')
+//             .exec();
 
-        // 3. Extract unique teachers from classes
-        const teacherMap = new Map();
-        classes.forEach(classItem => {
-            if (classItem.teacherId && !teacherMap.has(classItem.teacherId._id.toString())) {
-                teacherMap.set(classItem.teacherId._id.toString(), classItem.teacherId);
-            }
-        });
-        const teachers = Array.from(teacherMap.values());
+//         // 3. Extract unique teachers from classes
+//         const teacherMap = new Map();
+//         classes.forEach(classItem => {
+//             if (classItem.teacherId && !teacherMap.has(classItem.teacherId._id.toString())) {
+//                 teacherMap.set(classItem.teacherId._id.toString(), classItem.teacherId);
+//             }
+//         });
+//         const teachers = Array.from(teacherMap.values());
 
-        // 4. Combine teachers and admins
-        const allUsersToChat = [...teachers, ...admins];
+//         // 4. Combine teachers and admins
+//         const allUsersToChat = [...teachers, ...admins];
 
-        if (allUsersToChat.length === 0) {
-            return res.status(404).json({ message: 'No teachers or admins found for this student' });
-        }
+//         if (allUsersToChat.length === 0) {
+//             return res.status(404).json({ message: 'No teachers or admins found for this student' });
+//         }
 
-        // 5. Fetch unread messages count for each user
-        const usersWithUnreadMessages = await Promise.all(
-            allUsersToChat.map(async (user) => {
-                const unreadMessagesCount = await Message.countDocuments({
-                    sender: user._id,
-                    receiver: studentId,
-                    read: false,
-                    content: { $ne: "Message Deleted" } // Exclude deleted messages
-                });
+//         // 5. Fetch unread messages count for each user
+//         const usersWithUnreadMessages = await Promise.all(
+//             allUsersToChat.map(async (user) => {
+//                 const unreadMessagesCount = await Message.countDocuments({
+//                     sender: user._id,
+//                     receiver: studentId,
+//                     read: false,
+//                     content: { $ne: "Message Deleted" } // Exclude deleted messages
+//                 });
 
-                return {
-                    ...user.toObject(),
-                    unreadMessages: unreadMessagesCount
-                };
-            })
-        );
+//                 return {
+//                     ...user.toObject(),
+//                     unreadMessages: unreadMessagesCount
+//                 };
+//             })
+//         );
 
-        res.status(200).json({ users: usersWithUnreadMessages });
+//         res.status(200).json({ users: usersWithUnreadMessages });
 
-    } catch (error) {
-        console.error('Error fetching chat users:', error);
-        res.status(500).json({ 
-            message: 'Server error', 
-            error: error.message 
-        });
-    }
-};
+//     } catch (error) {
+//         console.error('Error fetching chat users:', error);
+//         res.status(500).json({ 
+//             message: 'Server error', 
+//             error: error.message 
+//         });
+//     }
+// };
 
 
 
@@ -218,6 +218,89 @@ export const updateMessageById = async (req, res) => {
     }
   };
   
+// import Message from '../models/Message.js'; // Adjust path if needed
+// import User from '../models/User.js';
+
+const getTeacherInTheChat = async (req, res) => {
+    const { studentId } = req.params;
+
+    try {
+        // Step 1: Get student with populated teacher info
+        const student = await User.findById(studentId).populate({
+            path: 'classes.teacherId',
+            select: 'firstName lastName email profileUrl role',
+            match: { role: 'teacher' }
+        });
+
+        if (!student || !student.classes) {
+            return res.status(404).json({ success: false, message: 'No teachers found' });
+        }
+
+        // Step 2: Get all teachers from student classes
+        const teachers = student.classes
+            .filter(c => c.teacherId)
+            .map(c => c.teacherId);
+
+        // Step 3: Add unread message count to each teacher
+        const teacherWithUnread = await Promise.all(
+            teachers.map(async teacher => {
+                const count = await Message.countDocuments({
+                    sender: teacher._id,
+                    receiver: studentId,
+                    read: false
+                });
+
+                return {
+                    ...teacher.toObject(),
+                    unreadMessages: count
+                };
+            })
+        );
+
+        // Step 4: Get all admins
+        const admins = await User.find({ role: 'admin' });
+
+        // Step 5: Add unread message count to each admin
+        const adminWithUnread = await Promise.all(
+            admins.map(async admin => {
+                const count = await Message.countDocuments({
+                    sender: admin._id,
+                    receiver: studentId,
+                    read: false
+                });
+
+                return {
+                    ...admin.toObject(),
+                    unreadMessages: count
+                };
+            })
+        );
+
+        // ✅ Step 6: Add student itself
+        const studentWithMeta = {
+            ...student.toObject(),
+            unreadMessages: 0 // or calculate if you want reverse (teacher/admin to student)
+        };
+
+        // ✅ Step 7: Merge all into one array
+        const allUsers = [studentWithMeta, ...teacherWithUnread, ...adminWithUnread];
+
+        res.status(200).json({
+            success: true,
+            users: allUsers
+        });
+
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, message: 'Internal server error' });
+    }
+};
+
+
+
+
+// export default getTeacherInTheChat;
+
 
 
 

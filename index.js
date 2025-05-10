@@ -30,7 +30,7 @@ io.on("connection", (socket) => {
   socket.on("register", (userId) => {
     activeUsers.set(userId, socket.id);
   });
-console.log("connect",socket.id)
+// console.log("connect",socket.id)
   socket.on("sendMessage", async ({ sender, receiver, content }) => {
     try {
       const message = await MessageModel.create({ sender, receiver, content });
@@ -66,6 +66,51 @@ socket.on('markAsRead', async ({ sender, receiver, messageId }) => {
   }
 });
 
+
+// socket.on("unsendLastMessage", async ({ content ,sender, receiver, index }) => {
+//   console.log(sender, receiver);
+//   try {
+//     // Latest message find karo
+//     const lastMessage = await MessageModel.findOne({
+//       $or: [
+//         { sender, receiver ,content},
+//         { sender: receiver, receiver: sender }
+//       ]
+//     }).sort({ createdAt: -1 });
+
+//     if (!lastMessage) return;
+
+//     // Update content
+//     lastMessage.content = "This message was deleted";
+//     const updatedMessage = await lastMessage.save(); // Saving updated message
+
+//     console.log("Updated message in DB:", updatedMessage); // Log the updated message to check
+
+//     // Prepare data to emit
+//     const updatePayload = {
+//       index, // Attach index to payload
+//       content: updatedMessage.content,
+//     };
+
+//     // Emit to both users
+//     const senderSocket = activeUsers.get(sender);
+//     const receiverSocket = activeUsers.get(receiver);
+
+//     if (senderSocket) {
+//       io.to(senderSocket).emit("messageUnsent", updatePayload);
+//     }
+//     if (receiverSocket) {
+//       io.to(receiverSocket).emit("messageUnsent", updatePayload);
+//     }
+
+//   } catch (error) {
+//     console.error("Error unsending message:", error);
+//   }
+// });
+
+
+
+
   socket.on("disconnect", () => {
     for (const [userId, socketId] of activeUsers.entries()) {
       if (socketId === socket.id) {
@@ -73,8 +118,11 @@ socket.on('markAsRead', async ({ sender, receiver, messageId }) => {
         break;
       }
     }
-    console.log("User disconnected:", socket.id);
+    // console.log("User disconnected:", socket.id);
   });
+
+
+
 });
 
 // ✅ Middleware and Route Setup
