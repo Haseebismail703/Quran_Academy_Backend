@@ -30,83 +30,73 @@ io.on("connection", (socket) => {
   socket.on("register", (userId) => {
     activeUsers.set(userId, socket.id);
   });
-// console.log("connect",socket.id)
+  // console.log("connect",socket.id)
   socket.on("sendMessage", async ({ sender, receiver, content }) => {
     try {
       const message = await MessageModel.create({ sender, receiver, content });
 
+      const senderSocket = activeUsers.get(sender);
       const receiverSocket = activeUsers.get(receiver);
-      if (receiverSocket) {
-        io.to(receiverSocket).emit("receiveMessage", message);
-      }
+
+      // Send to both
+      if (senderSocket) io.to(senderSocket).emit("receiveMessage", message);
+      if (receiverSocket) io.to(receiverSocket).emit("receiveMessage", message);
     } catch (error) {
       console.error("Error sending message:", error);
     }
   });
 
+
   // ✅ Handle read messages
- // Add this to your socket.io implementation
-socket.on('markAsRead', async ({ sender, receiver, messageId }) => {
-  try {
+  // Add this to your socket.io implementation
+  socket.on('markAsRead', async ({ sender, receiver, messageId }) => {
+    try {
       await MessageModel.updateMany(
-          {
-              sender,
-              receiver,
-              read: false
-          },
-          { $set: { read: true } }
+        {
+          sender,
+          receiver,
+          read: false
+        },
+        { $set: { read: true } }
       );
-      
+
       // Notify the sender that messages were read
-      io.to(sender).emit('messageRead', { 
-          receiverId: receiver 
+      io.to(sender).emit('messageRead', {
+        receiverId: receiver
       });
-  } catch (error) {
+    } catch (error) {
       console.error('Error marking messages as read:', error);
-  }
-});
+    }
+  });
 
 
-// socket.on("unsendLastMessage", async ({ content ,sender, receiver, index }) => {
-//   console.log(sender, receiver);
-//   try {
-//     // Latest message find karo
-//     const lastMessage = await MessageModel.findOne({
-//       $or: [
-//         { sender, receiver ,content},
-//         { sender: receiver, receiver: sender }
-//       ]
-//     }).sort({ createdAt: -1 });
+  socket.on("unsendLastMessage", async ({ _id, sender, receiver }) => {
+    try {
+      const message = await MessageModel.findById(_id);
+      if (!message) return;
 
-//     if (!lastMessage) return;
+      message.content = "This message was deleted";
+      const updatedMessage = await message.save();
 
-//     // Update content
-//     lastMessage.content = "This message was deleted";
-//     const updatedMessage = await lastMessage.save(); // Saving updated message
+      const updatePayload = {
+        _id: updatedMessage._id,
+        content: updatedMessage.content,
+      };
 
-//     console.log("Updated message in DB:", updatedMessage); // Log the updated message to check
+      const senderSocket = activeUsers.get(sender);
+      const receiverSocket = activeUsers.get(receiver);
 
-//     // Prepare data to emit
-//     const updatePayload = {
-//       index, // Attach index to payload
-//       content: updatedMessage.content,
-//     };
+      if (senderSocket) {
+        io.to(senderSocket).emit("messageUnsent", updatePayload);
+      }
+      if (receiverSocket) {
+        io.to(receiverSocket).emit("messageUnsent", updatePayload);
+      }
+    } catch (error) {
+      console.error("Error unsending message:", error);
+    }
+  });
 
-//     // Emit to both users
-//     const senderSocket = activeUsers.get(sender);
-//     const receiverSocket = activeUsers.get(receiver);
-
-//     if (senderSocket) {
-//       io.to(senderSocket).emit("messageUnsent", updatePayload);
-//     }
-//     if (receiverSocket) {
-//       io.to(receiverSocket).emit("messageUnsent", updatePayload);
-//     }
-
-//   } catch (error) {
-//     console.error("Error unsending message:", error);
-//   }
-// });
 
 
 
