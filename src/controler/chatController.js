@@ -195,32 +195,7 @@ const getStudentsInChat = async (req, res) => {
     }
 };
 
-
-// message delete hoga lkn hum db mai ya message save kara ga message delete 
-export const updateMessageById = async (req, res) => {
-    const { sender, receiver, content } = req.body;
-  console.log(req.body)
-    try {
-      const updatedMessage = await Message.findOneAndUpdate(
-        { sender, receiver, content },
-        { content: "Message Deleted" },
-        { new: true }
-      );
-  
-      if (!updatedMessage) {
-        return res.status(404).json({ message: "Message not found with given details" });
-      }
-  
-      return res.status(200).json({ message: "Message updated successfully", updatedMessage });
-    } catch (error) {
-      console.error("Error updating message:", error);
-      return res.status(500).json({ message: "Server error" });
-    }
-  };
-  
-// import Message from '../models/Message.js'; // Adjust path if needed
-// import User from '../models/User.js';
-
+// get all teacher in student chat
 const getTeacherInTheChat = async (req, res) => {
     const { studentId } = req.params;
 
@@ -295,15 +270,52 @@ const getTeacherInTheChat = async (req, res) => {
         res.status(500).json({ success: false, message: 'Internal server error' });
     }
 };
+// get all user in admin chat
+const adminAllUserInchat = async (req, res) => {
+  try {
+    const { adminId } = req.params;
+
+    // Find all distinct user IDs jinhone admin ko message bheja ya jinko admin ne message bheja
+    const senderIds = await Message.distinct("sender", { receiver: adminId });
+    const receiverIds = await Message.distinct("receiver", { sender: adminId });
+
+    // Merge and remove duplicates
+    const allChatUserIds = [...new Set([...senderIds, ...receiverIds])].filter(id => id !== adminId);
+
+    // Get user info
+    const allUsers = await User.find({ _id: { $in: allChatUserIds } });
+
+    const users = await Promise.all(
+      allUsers.map(async (user) => {
+        const unreadMessages = await Message.countDocuments({
+          sender: user._id,
+          receiver: adminId,
+          read: false,
+        });
+
+        return {
+          _id: user._id,
+          firstName: user.firstName,
+          email: user.email,
+          role: user.role,
+          unreadMessages,
+        };
+      })
+    );
+
+    res.status(200).json({ users });
+  } catch (err) {
+    console.error("Error fetching users with unread count:", err);
+    res.status(500).json({ error: "Server error" });
+  }
+};
 
 
 
 
-// export default getTeacherInTheChat;
 
 
 
 
 
-
-export {allUser,message,getMessage,getTeacherInTheChat,getStudentsInChat };
+export {allUser,message,getMessage,getTeacherInTheChat,getStudentsInChat ,adminAllUserInchat};
