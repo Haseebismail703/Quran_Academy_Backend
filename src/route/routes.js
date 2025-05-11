@@ -10,6 +10,8 @@ import { createClass, getAllClasses, addStudentToClass, removeStudentFromClass, 
 import multer from 'multer'
 import { getAllAttendance, getStudentAttendanceHistory, getStudentAttendence, markAttendance, updateAttendance } from "../controler/attendenceController.js";
 import { adminAllUserInchat, getMessage, getStudentsInChat, getTeacherInTheChat, message } from "../controler/chatController.js";
+import { createNotification, deleteNoti, getAllNotification, getNotificationsForUser, markNotificationAsRead } from "../controler/notificationController.js";
+import { createClassNotification, deleteNotification, getAllNotifications, getClassNotification, getNotificationsByClass } from "../controler/teacherNotification.js";
 const router = express.Router();
 
 let storage = multer.memoryStorage();
@@ -79,6 +81,21 @@ router.get("/messages/:senderId/:receiverId",getMessage)
 router.get('/getTeacherInChat/:studentId',getTeacherInTheChat)
 router.get('/getStudentsInChat/:teacherId',getStudentsInChat)
 router.get('/adminAllUserInchat/:adminId',adminAllUserInchat)
+
+// Notification route
+router.post("/creatNoti", createNotification);
+router.get("/noti/:userId/:role", getNotificationsForUser);
+router.get('/getAllNotification',getAllNotification)
+router.put("/noti/read/:id", markNotificationAsRead);
+router.delete('/deleteNoti/:id',deleteNoti)
+
+// teacher Notification
+router.get('/getAllClassNotification', getAllNotifications);
+router.get('/classNotification/:classId', getNotificationsByClass);
+router.post('/createClassNotification', createClassNotification);
+router.delete('/classNotification/:id', deleteNotification); 
+router.get('/getClassNotification',getClassNotification)
+
 export default router
 
 
