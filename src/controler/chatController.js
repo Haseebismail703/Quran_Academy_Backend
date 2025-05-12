@@ -26,96 +26,35 @@ let message = async(req,res) =>{
 }
 
 let getMessage = async (req, res) => {
-    const { senderId, receiverId } = req.params;
-  
-    try {
-      const messages = await Message.find({
-        $or: [
-          { sender: senderId, receiver: receiverId },
-          { sender: receiverId, receiver: senderId },
-        ],
-      }).sort({ timestamp: 1 });
-  
-      // Count unread messages sent by `receiverId` to `senderId`
-      const unreadCount = await Message.countDocuments({
-        sender: receiverId,
-        receiver: senderId,
-        read: false
-      });
-  
-      res.status(200).json({ messages, unreadCount });
-    } catch (error) {
-      res.status(500).json({ error: "Server error" });
-    }
-  };
+  const { senderId, receiverId } = req.params;
+
+  try {
+    const messages = await Message.find({
+      $or: [
+        { sender: senderId, receiver: receiverId },
+        { sender: receiverId, receiver: senderId },
+      ],
+    })
+      .sort({ timestamp: -1 })  
+      .limit(20)                
+      .lean();                  
+
+    const unreadCount = await Message.countDocuments({
+      sender: receiverId,
+      receiver: senderId,
+      read: false
+    });
+
+    res.status(200).json({
+      messages: messages.reverse(), 
+      unreadCount
+    });
+  } catch (error) {
+    res.status(500).json({ error: "Server error" });
+  }
+};
+
    
-// Get teachers and admins for student chat with unread counts
-// let getTeacherInTheChat = async (req, res) => {
-//     const { studentId } = req.params;
-
-//     try {
-//         // 1. Find all classes where the student is enrolled and populate teacher info
-//         const classes = await Class.find({ 
-//             'students.studentId': studentId,
-//             'status': 'join'
-//         })
-//         .populate({
-//             path: 'teacherId',
-//             select: 'firstName lastName email gender role profileUrl'
-//         })
-//         .exec();
-
-//         // 2. Get all admin users
-//         const admins = await User.find({ role: 'admin' })
-//             .select('firstName lastName email gender role profileUrl')
-//             .exec();
-
-//         // 3. Extract unique teachers from classes
-//         const teacherMap = new Map();
-//         classes.forEach(classItem => {
-//             if (classItem.teacherId && !teacherMap.has(classItem.teacherId._id.toString())) {
-//                 teacherMap.set(classItem.teacherId._id.toString(), classItem.teacherId);
-//             }
-//         });
-//         const teachers = Array.from(teacherMap.values());
-
-//         // 4. Combine teachers and admins
-//         const allUsersToChat = [...teachers, ...admins];
-
-//         if (allUsersToChat.length === 0) {
-//             return res.status(404).json({ message: 'No teachers or admins found for this student' });
-//         }
-
-//         // 5. Fetch unread messages count for each user
-//         const usersWithUnreadMessages = await Promise.all(
-//             allUsersToChat.map(async (user) => {
-//                 const unreadMessagesCount = await Message.countDocuments({
-//                     sender: user._id,
-//                     receiver: studentId,
-//                     read: false,
-//                     content: { $ne: "Message Deleted" } // Exclude deleted messages
-//                 });
-
-//                 return {
-//                     ...user.toObject(),
-//                     unreadMessages: unreadMessagesCount
-//                 };
-//             })
-//         );
-
-//         res.status(200).json({ users: usersWithUnreadMessages });
-
-//     } catch (error) {
-//         console.error('Error fetching chat users:', error);
-//         res.status(500).json({ 
-//             message: 'Server error', 
-//             error: error.message 
-//         });
-//     }
-// };
-
-
-
 // get student in the teacher chat 
 const getStudentsInChat = async (req, res) => {
     const { teacherId } = req.params;

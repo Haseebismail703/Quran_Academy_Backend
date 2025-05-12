@@ -41,7 +41,7 @@ const userSchema = new Schema({
             },
             classId: {
                 type: Schema.Types.ObjectId,
-                ref: 'classes', 
+                ref: 'Class', 
                 default : null
             },
             courseId: {

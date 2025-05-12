@@ -196,4 +196,64 @@ export const addClassLinkToStudent = async (req, res) => {
     }
 };
 
+// getTeacherDashboardData
 
+export const getTeacherDashboardData = async (req, res) => {
+    try {
+        const { teacherId } = req.params;
+
+        // Fetch all classes of the teacher with student details
+        const classes = await Class.find({ teacherId })
+            .populate("students.studentId", "firstName lastName email gender profileUrl");
+
+        let totalStudentsSet = new Set();
+        let nextStudent = null;
+        let earliestTime = null;
+
+        const allStudents = [];
+
+        classes.forEach(cls => {
+            cls.students.forEach(st => {
+                const student = st.studentId;
+                if (student) {
+                    totalStudentsSet.add(student._id.toString());
+
+                    const currentStudent = {
+                        studentId: student._id,
+                        fullName: `${student.firstName}`,
+                        email: student.email,
+                        gender: student.gender,
+                        profileUrl: student.profileUrl,
+                        timing: st.studentTiming,
+                        classId: cls._id
+                    };
+
+                    allStudents.push(currentStudent);
+
+                    // Extract hour from timing string (like "7 PM to 1 AM")
+                    const startHourStr = st.studentTiming?.split("to")[0]?.trim(); // e.g. "7 PM"
+                    const parsedDate = Date.parse(`01 Jan 2025 ${startHourStr}`); // dummy date
+
+                    if (!isNaN(parsedDate)) {
+                        if (!earliestTime || parsedDate < earliestTime) {
+                            earliestTime = parsedDate;
+                            nextStudent = currentStudent;
+                        }
+                    }
+                }
+            });
+        });
+
+        res.status(200).json({
+            success: true,
+            totalStudents: totalStudentsSet.size,
+            totalClasses: classes.length,
+            nextStudent: nextStudent || null,
+            students: allStudents
+        });
+
+    } catch (error) {
+        console.error("Dashboard API Error:", error);
+        res.status(500).json({ success: false, message: "Something went wrong", error });
+    }
+};

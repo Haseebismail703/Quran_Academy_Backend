@@ -1,6 +1,7 @@
 import Package from "../model/packageModel.js";
 import User from "../model/authModel.js";
 import Course from '../model/courseModel.js'
+import cloudinary from "../confiq/cloudinary.js";
 
 
 // create a new package
@@ -144,5 +145,8 @@ let deletePackage = async (req, res) => {
     res.status(500).json({ message: "Error deleting package", error: error.message });
   }
 }
+
+
+
 
 export { createPackage, getAllPackages, buyPackage, deletePackage };

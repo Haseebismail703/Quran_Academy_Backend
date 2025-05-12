@@ -2,7 +2,7 @@ import express from "express";
 import { signupUser, signinUser, adminLogin, updateUser, logOut,updateStatusAndFirstName, updatePassword, getProfile } from '../controler/authController.js'
 import { creatReview, getReview } from '../controler/reviewController.js'
 import { billingAddress } from "../controler/billingControler.js"
-import { getClassByTeacherId, getJoinStudentByClassId, addFile, deleteFile,getFilesByClassId, addClassLinkToStudent } from "../controler/teacherController.js"
+import { getClassByTeacherId, getJoinStudentByClassId, addFile, deleteFile,getFilesByClassId, addClassLinkToStudent, getTeacherDashboardData } from "../controler/teacherController.js"
 import { createPackage, getAllPackages, buyPackage, deletePackage } from "../controler/packageController.js"
 import { getAllClassesByStudentId, getPackageByStudentId,getPaymentHistory } from "../controler/studentController.js"
 import { createClass, getAllClasses, addStudentToClass, removeStudentFromClass, getWaitingStudentCourseId, updateClass, deleteClass, getAllTeacher, getAllUserData, createCourse, getAllCourses, UpdateClassLink, updateCourseDetails, deleteCourse, getClassWithStudents, getCourseAndWaitingStudent, createCareer, getAllCareer, allUser } from '../controler/adminController.js'
@@ -12,6 +12,7 @@ import { getAllAttendance, getStudentAttendanceHistory, getStudentAttendence, ma
 import { adminAllUserInchat, getMessage, getStudentsInChat, getTeacherInTheChat, message } from "../controler/chatController.js";
 import { createNotification, deleteNoti, getAllNotification, getNotificationsForUser, markNotificationAsRead } from "../controler/notificationController.js";
 import { createClassNotification, deleteNotification, getAllNotifications, getClassNotification, getNotificationsByClass } from "../controler/teacherNotification.js";
+import { checkAndGenerateRecipe, createRecipe, getLatestRecipe, updateRecipeImage, updateRecipeStatus } from "../controler/recipeController.js";
 const router = express.Router();
 
 let storage = multer.memoryStorage();
@@ -55,7 +56,7 @@ router.post('/createBillingAdress', billingAddress);
 // Package routes
 router.post('/createPackage', createPackage);
 router.get('/getAllPackages', getAllPackages);
-router.post('/buyPackage', buyPackage);
+router.post('/buyPackage', upload.single('file') ,buyPackage);
 router.delete('/deletePackage/:packageId', deletePackage);
 // teacher route 
 router.get('/getClassByTeacherId/:teacherId', getClassByTeacherId);
@@ -64,6 +65,7 @@ router.post('/addFile', upload.single('file'), addFile);
 router.delete('/deleteFile/:fileId', deleteFile);
 router.put('/addClassLink/:studentId', addClassLinkToStudent)
 router.get('/getAllAttendance/:classId/:date',getAllAttendance)
+router.get('/teacher-dashboard/:teacherId', getTeacherDashboardData);
 // student route
 router.get('/getAllClassesByStudentId/:studentId', getAllClassesByStudentId);
 router.get('/getFilesByClassId/:classId', getFilesByClassId);
@@ -95,6 +97,13 @@ router.get('/classNotification/:classId', getNotificationsByClass);
 router.post('/createClassNotification', createClassNotification);
 router.delete('/classNotification/:id', deleteNotification); 
 router.get('/getClassNotification',getClassNotification)
+
+// recipt route
+router.post('/createRecipe',upload.single('file'),createRecipe)
+router.get('/recipeLatest/:studentId/:courseId', getLatestRecipe);
+router.put('/recipe/update', upload.single('file'), updateRecipeImage);
+router.put('/updateRecipeStatus',updateRecipeStatus)
+router.get('/generate-recipe/:studentId/:courseId/:packageId', checkAndGenerateRecipe);
 
 export default router
 
