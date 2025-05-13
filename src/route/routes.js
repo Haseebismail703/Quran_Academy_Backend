@@ -12,7 +12,7 @@ import { getAllAttendance, getStudentAttendanceHistory, getStudentAttendence, ma
 import { adminAllUserInchat, getMessage, getStudentsInChat, getTeacherInTheChat, message } from "../controler/chatController.js";
 import { createNotification, deleteNoti, getAllNotification, getNotificationsForUser, markNotificationAsRead } from "../controler/notificationController.js";
 import { createClassNotification, deleteNotification, getAllNotifications, getClassNotification, getNotificationsByClass } from "../controler/teacherNotification.js";
-import { checkAndGenerateRecipe, createRecipe, getLatestRecipe, updateRecipeImage, updateRecipeStatus } from "../controler/recipeController.js";
+import {  checkAndGenerateVoucher, createRecipe,  getLatestVoucher, updateRecipeImage,  updateVoucherStatus } from "../controler/recipeController.js";
 const router = express.Router();
 
 let storage = multer.memoryStorage();
@@ -100,10 +100,10 @@ router.get('/getClassNotification',getClassNotification)
 
 // recipt route
 router.post('/createRecipe',upload.single('file'),createRecipe)
-router.get('/recipeLatest/:studentId/:courseId', getLatestRecipe);
+router.get('/getLatestVoucher', getLatestVoucher);
 router.put('/recipe/update', upload.single('file'), updateRecipeImage);
-router.put('/updateRecipeStatus',updateRecipeStatus)
-router.get('/generate-recipe/:studentId/:courseId/:packageId', checkAndGenerateRecipe);
+router.put('/updateVoucherStatus',updateVoucherStatus)
+router.get('/generate-voucher/:studentId/:courseId/:packageId', checkAndGenerateVoucher);
 
 export default router
 

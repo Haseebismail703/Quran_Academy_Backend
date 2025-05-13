@@ -1,231 +1,257 @@
 import cloudinary from "../confiq/cloudinary.js";
 import User from "../model/authModel.js";
 import Package from "../model/packageModel.js";
-import Recipe from "../model/recipeModel.js";
+import Voucher from "../model/voucherModel.js";
 
 
 export let createRecipe = async (req, res) => {
-    const { packageId ,courseId, studentId } = req.body;
-    const file = req.file; 
-//    console.log(req.body)
-    try {
-        let recipeUrl = null;
-        let publicId = null
-        if (file) {
-            const uploadResult = await new Promise((resolve, reject) => {
-                const uploadStream = cloudinary.uploader.upload_stream(
-                    {
-                        folder: 'package',
-                        resource_type: 'auto',
-                    },
-                    (error, result) => {
-                        if (error) {
-                            reject(error);
-                        } else {
-                            resolve(result);
-                        }
-                    }
-                );
-
-                // Pipe the file buffer into the upload stream
-                uploadStream.end(file.buffer);
-            });
-
-            recipeUrl = uploadResult.secure_url; // Get the uploaded image URL
-            publicId = uploadResult.public_id
-            // console.log(uploadResult,req.body)
-        }
-
-        // Create a new recipe in the database
-        const newRecipe = await Recipe.create({
-            packageId,
-            courseId,
-            studentId,
-            recipeUrl,
-            publicId
-        });
-
-        res.status(201).json({
-            success: true,
-            message: "Recipe created successfully",
-            data: newRecipe,
-        });
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: "An error occurred while creating the recipe",
-            error: error.message,
-        });
-    }
-};
-// auto recipe generated 
-export const checkAndGenerateRecipe = async (req, res) => {
-  const { studentId, courseId, packageId } = req.params;
-
+  const { packageId, courseId, studentId } = req.body;
+  const file = req.file;
+  //    console.log(req.body)
   try {
-    // 1. Find the package and verify month end date
-    const packageData = await Package.findOne({
-      _id: packageId,
-      studentId,
-      courseId
-    });
+    let recipeUrl = null;
+    let publicId = null
+    if (file) {
+      const uploadResult = await new Promise((resolve, reject) => {
+        const uploadStream = cloudinary.uploader.upload_stream(
+          {
+            folder: 'package',
+            resource_type: 'auto',
+          },
+          (error, result) => {
+            if (error) {
+              reject(error);
+            } else {
+              resolve(result);
+            }
+          }
+        );
 
-    if (!packageData) {
-      return res.status(404).json({ message: "Package not found" });
-    }
-
-    const today = new Date().toISOString().split("T")[0];
-    const monthEnd = new Date(packageData.monthEnd).toISOString().split("T")[0];
-    const isMonthEnd = today === monthEnd;
-
-    // 2. Get all existing recipes (sorted by newest first)
-    let allRecipes = await Recipe.find({
-      studentId,
-      courseId,
-      packageId
-    }).sort({ createdAt: -1 });
-
-    // 3. Handle month end scenario
-    if (isMonthEnd) {
-      // Check if recipe already exists for today
-      const todayRecipeExists = allRecipes.some(recipe => {
-        const recipeDate = new Date(recipe.createdAt).toISOString().split("T")[0];
-        return recipeDate === today;
+        // Pipe the file buffer into the upload stream
+        uploadStream.end(file.buffer);
       });
 
-      // Generate new recipe if it's month end and no recipe exists for today
-      if (!todayRecipeExists) {
-        const newRecipe = await Recipe.create({
-          studentId,
-          courseId,
-          packageId,
-          status: "pending",
-        });
-        // Refresh the recipes list after creation
-        allRecipes = await Recipe.find({
-          studentId,
-          courseId,
-          packageId
-        }).sort({ createdAt: -1 });
-      }
+      recipeUrl = uploadResult.secure_url; // Get the uploaded image URL
+      publicId = uploadResult.public_id
+      // console.log(uploadResult,req.body)
     }
 
-    // 4. Prepare response
-    const response = {
-      message: isMonthEnd 
-        ? "Month end processing completed"
-        : "Regular package check",
-      isMonthEnd,
-      data: {
-        allRecipes,
-        packageDetails: {
-          packageName: packageData.packageName,
-          monthEnd: packageData.monthEnd
-        }
-      }
-    };
+    // Create a new recipe in the database
+    const newRecipe = await Voucher.create({
+      packageId,
+      courseId,
+      studentId,
+      recipeUrl,
+      publicId
+    });
 
-    return res.status(200).json(response);
-
+    res.status(201).json({
+      success: true,
+      message: "Recipe created successfully",
+      data: newRecipe,
+    });
   } catch (error) {
-    return res.status(500).json({
-      message: "Something went wrong",
-      error: error.message
+    res.status(500).json({
+      success: false,
+      message: "An error occurred while creating the recipe",
+      error: error.message,
     });
   }
 };
 
-export const getLatestRecipe = async (req, res) => {
-    const { studentId, courseId } = req.params
+export const checkAndGenerateVoucher = async (req, res) => {
+  try {
+    const { studentId } = req.params;
 
-    try {
-        const latestRecipe = await Recipe.find({ studentId, courseId })
-            .sort({ createdAt: -1 })
-            .populate('studentId','firstName')
-            .populate('courseId','courseName')
-            .populate('packageId','packageName')
-
-        if (!latestRecipe) {
-            return res.status(404).json({
-                success: false,
-                message: 'No recipe found for this student and course.',
-            });
-        }
-
-        res.status(200).json(latestRecipe);
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: 'Error fetching the latest recipe.',
-            error: error.message,
-        });
+    if (!studentId) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Student ID is required' 
+      });
     }
+
+    // Get today's date and reset hours, minutes, seconds to compare just the date
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // Find all active packages for the student
+    const studentPackages = await Package.find({ 
+      studentId,
+    });
+
+    if (!studentPackages || studentPackages.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'No active packages found for this student'
+      });
+    }
+
+    // Check for packages where month-end has been reached or passed
+    const packagesDueForVoucher = studentPackages.filter(pkg => {
+      // Skip packages with invalid monthEnd dates
+      if (!pkg.monthEnd || pkg.monthEnd.getTime() === new Date(0).getTime()) {
+        return false;
+      }
+
+      const monthEnd = new Date(pkg.monthEnd);
+      monthEnd.setHours(0, 0, 0, 0);
+
+      // Check if monthEnd is today or in the past
+      return monthEnd <= today;
+    });
+
+    // Generate new vouchers for eligible packages
+    const newVouchers = [];
+    const currentMonth = today.getMonth();
+    const currentYear = today.getFullYear();
+
+    for (const pkg of packagesDueForVoucher) {
+      // Check if there's already a voucher for this month
+      const startOfMonth = new Date(currentYear, currentMonth, 1);
+      const endOfMonth = new Date(currentYear, currentMonth + 1, 0); // Last day of current month
+
+      const existingVoucher = await Voucher.findOne({
+        packageId: pkg._id,
+        studentId: pkg.studentId,
+        createdAt: {
+          $gte: startOfMonth,
+          $lte: endOfMonth
+        }
+      });
+
+      // Only create a new voucher if one doesn't exist for this month
+      if (!existingVoucher) {
+        const newVoucher = new Voucher({
+          packageId: pkg._id,
+          courseId: pkg.courseId,
+          studentId: pkg.studentId,
+          status: "pending",
+          month: currentMonth + 1,
+          year: currentYear,
+          monthEnd: pkg.monthEnd
+        });
+
+        const savedVoucher = await newVoucher.save();
+        newVouchers.push(savedVoucher);
+      }
+    }
+
+    // Get all vouchers for this student (including newly created ones)
+    const allVouchers = await Voucher.find({ studentId })
+      .populate('packageId', 'packageName')
+      .populate('courseId', 'courseName')
+      .sort({ createdAt: -1 });
+
+    return res.status(200).json({
+      success: true,
+      message: newVouchers.length > 0 
+        ? `${newVouchers.length} new voucher(s) generated` 
+        : 'No new voucher needed',
+      data: {
+        vouchers: allVouchers,
+        newlyCreated: newVouchers,
+        packagesChecked: studentPackages.length,
+        packagesDue: packagesDueForVoucher.length
+      }
+    });
+
+  } catch (error) {
+    console.error('Error in checkAndGenerateVouchers:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
+  }
 };
 
+export const getLatestVoucher = async (req, res) => {
+
+  try {
+    const latestVoucher = await Voucher.find({
+      status: { $in: ['pending', 'approved', 'rejected'] },  // filter allowed statuses
+      recipeUrl: { $ne: ''  }, 
+    })
+      .sort({ createdAt: -1 })
+      .populate('studentId', 'firstName')
+      .populate('courseId', 'courseName')
+      .populate('packageId', 'packageName');
+      console.log(latestVoucher)
+    res.status(200).json(latestVoucher);
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching the latest voucher.',
+      error: error.message,
+    });
+  }
+};
 
 export const updateRecipeImage = async (req, res) => {
-    const { studentId, courseId } = req.body;
-    const file = req.file;
+  const { recipeId  } = req.body;
+  const file = req.file;
 
-    if (!file) {
-        return res.status(400).json({ success: false, message: 'No image file provided' });
+  if (!file) {
+    return res.status(400).json({ success: false, message: 'No image file provided' });
+  }
+
+  try {
+    // Get latest voucher entry for that student and course
+    const latestVoucher = await Voucher.findById(recipeId )
+
+    if (!latestVoucher) {
+      return res.status(404).json({
+        success: false,
+        message: 'No voucher found to update.',
+      });
     }
 
-    try {
-        // Get latest recipe entry for that student and course
-        const latestRecipe = await Recipe.findOne({ studentId, courseId }).sort({ createdAt: -1 });
-
-        if (!latestRecipe) {
-            return res.status(404).json({
-                success: false,
-                message: 'No recipe found to update.',
-            });
-        }
-
-        // Delete previous image from Cloudinary
-        if (latestRecipe.publicId) {
-            await cloudinary.uploader.destroy(latestRecipe.publicId);
-        }
-
-        // Upload new image
-        const uploadResult = await new Promise((resolve, reject) => {
-            const uploadStream = cloudinary.uploader.upload_stream(
-                {
-                    folder: 'package',
-                    resource_type: 'auto',
-                },
-                (error, result) => {
-                    if (error) reject(error);
-                    else resolve(result);
-                }
-            );
-
-            uploadStream.end(file.buffer);
-        });
-
-        // Update recipe with new image URL and publicId
-        latestRecipe.recipeUrl = uploadResult.secure_url;
-        latestRecipe.publicId = uploadResult.public_id;
-        await latestRecipe.save();
-
-        res.status(200).json({
-            success: true,
-            message: 'Recipe image updated successfully',
-            data: latestRecipe,
-        });
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: 'Failed to update recipe image.',
-            error: error.message,
-        });
+    // Delete previous image from Cloudinary
+    if (latestVoucher.publicId) {
+      await cloudinary.uploader.destroy(latestVoucher.publicId);
     }
+
+    // Upload new image
+    const uploadResult = await new Promise((resolve, reject) => {
+      const uploadStream = cloudinary.uploader.upload_stream(
+        {
+          folder: 'vouchers',
+          resource_type: 'auto',
+        },
+        (error, result) => {
+          if (error) reject(error);
+          else resolve(result);
+        }
+      );
+
+      uploadStream.end(file.buffer);
+    });
+
+    // Update voucher with new image URL and publicId
+    latestVoucher.recipeUrl = uploadResult.secure_url;
+    latestVoucher.publicId = uploadResult.public_id;
+    latestVoucher.status = 'pending'
+    await latestVoucher.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Voucher recipe image updated successfully',
+      data: latestVoucher,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update recipe image.',
+      error: error.message,
+    });
+  }
 };
 
-// update recipe status and package update 
-export const updateRecipeStatus = async (req, res) => {
-  const { studentId, courseId, status, recipeId } = req.body;
-
+// update recipe  status and package update 
+export const updateVoucherStatus = async (req, res) => {
+  const { studentId, courseId, status, voucherId } = req.body;
+// console.log(req.body)
   try {
     // Validate student existence
     const student = await User.findById(studentId);
@@ -233,28 +259,28 @@ export const updateRecipeStatus = async (req, res) => {
       return res.status(404).json({ message: "Student not found" });
     }
 
-    // Validate recipe existence
-    const recipe = await Recipe.findById(recipeId);
-    if (!recipe) {
-      return res.status(404).json({ message: "Recipe not found" });
+    // Validate voucher existence
+    const voucher = await Voucher.findById(voucherId);
+    if (!voucher) {
+      return res.status(404).json({ message: "Voucher not found" });
     }
 
-    // Reject: only update recipe status
+    // Reject: only update voucher status
     if (status === 'rejected') {
-      recipe.status = 'rejected';
-      await recipe.save();
+      voucher.status = 'rejected';
+      await voucher.save();
 
       return res.status(200).json({
-        message: "Recipe rejected successfully",
-        data: recipe
+        message: "Voucher rejected successfully",
+        data: voucher
       });
     }
 
-    // Approve: update recipe and run course logic
+    // Approve: update voucher and run course logic
     if (status === 'approved') {
-      // Update recipe status
-      recipe.status = 'approved';
-      await recipe.save();
+      // Update voucher status
+      voucher.status = 'approved';
+      await voucher.save();
 
       // Dates
       const currentDate = new Date();
@@ -299,7 +325,7 @@ export const updateRecipeStatus = async (req, res) => {
       await student.save();
 
       return res.status(200).json({
-        message: "Recipe approved and course added successfully",
+        message: "Voucher approved and course added successfully",
         data: student
       });
     }

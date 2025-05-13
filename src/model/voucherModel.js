@@ -18,6 +18,7 @@ const recipeSchema = new mongoose.Schema({
   },
   recipeUrl: {
     type: String,
+    default : ''
   },
   publicId: {
     type: String,

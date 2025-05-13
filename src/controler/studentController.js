@@ -56,42 +56,46 @@ export const getPackageByStudentId = async (req, res) => {
 
     const updatedPackages = await Promise.all(
       packages.map(async (pkg) => {
-        const endDate = new Date(pkg.monthEnd);
         const startDate = new Date(pkg.monthStart);
+        const endDate = new Date(pkg.monthEnd);
         const isExpired = endDate < currentDate;
-        const isDefaultStartDate = new Date(pkg.monthStart).getTime() === 0; // Check if the start date is "1970-01-01"
+        const isDefaultStartDate = startDate.getTime() === 0;
 
-        // Update paymentStatus if expired and not the default start date
+        // If package expired & completed -> mark as inCompleted
         if (isExpired && pkg.paymentStatus === 'completed' && !isDefaultStartDate) {
           pkg.paymentStatus = 'inCompleted';
           await pkg.save();
         }
 
-        // Days remaining text
+        // Calculate days difference
         const diffInMs = endDate - currentDate;
-        const days = Math.ceil(diffInMs / (1000 * 60 * 60 * 24));
-        let daysStatus = '';
-        if (days > 0) {
-          daysStatus = `${days} days remaining`;
-        } else if (days === 0) {
-          daysStatus = `Today is the last day`;
-        } else {
-          daysStatus = `${Math.abs(days)} days passed, please pay your fee`;
+        const daysDiff = Math.ceil(diffInMs / (1000 * 60 * 60 * 24));
+        let daysStatus = "";
+
+        if (pkg.paymentStatus === "completed") {
+          if (daysDiff > 0) {
+            daysStatus = `${daysDiff} days remaining until next payment`;
+          } else if (daysDiff === 0) {
+            daysStatus = `Today is the last day of your current package`;
+          } else {
+            daysStatus = `Package expired ${Math.abs(daysDiff)} days ago`;
+          }
+        } else if (pkg.paymentStatus === "inCompleted") {
+          const overdueDays = Math.ceil((currentDate - endDate) / (1000 * 60 * 60 * 24));
+          daysStatus = `${overdueDays} days passed since due date`;
         }
 
-        // Accurate pending months logic
+        // Pending Months & Fee Calculation (only for inCompleted)
         let pendingMonths = 0;
         let totalPendingFee = 0;
 
         if (pkg.paymentStatus === 'inCompleted' && !isDefaultStartDate) {
           const paidUntil = new Date(pkg.lastPaymentDate || pkg.monthStart);
-          
-          // Calculate full months between paidUntil and currentDate
+
           let yearDiff = currentDate.getFullYear() - paidUntil.getFullYear();
           let monthDiff = currentDate.getMonth() - paidUntil.getMonth();
           let months = yearDiff * 12 + monthDiff;
 
-          // Adjust if current day is before the paid day
           if (currentDate.getDate() < paidUntil.getDate()) {
             months -= 1;
           }
@@ -116,6 +120,7 @@ export const getPackageByStudentId = async (req, res) => {
     res.status(500).json({ message: "Server Error" });
   }
 };
+
 
 
 // get payment history by student id
