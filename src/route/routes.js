@@ -71,6 +71,7 @@ router.get('/getAllClassesByStudentId/:studentId', getAllClassesByStudentId);
 router.get('/getFilesByClassId/:classId', getFilesByClassId);
 router.get('/getPackageByStudentId/:studentId', getPackageByStudentId);
 router.get('/paymentHistory/:studentId', getPaymentHistory);
+
 // attendece route 
 router.post('/markAttendance',markAttendance)
 router.get('/getStudentAttendanceHistory/:studentId/classId/:classId',getStudentAttendanceHistory)
@@ -98,7 +99,7 @@ router.post('/createClassNotification', createClassNotification);
 router.delete('/classNotification/:id', deleteNotification); 
 router.get('/getClassNotification',getClassNotification)
 
-// recipt route
+// voucher route
 router.post('/createRecipe',upload.single('file'),createRecipe)
 router.get('/getLatestVoucher', getLatestVoucher);
 router.put('/recipe/update', upload.single('file'), updateRecipeImage);

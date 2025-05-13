@@ -3,14 +3,11 @@ import Attendance from "../model/attendenceModel.js";
 
 // mark attendence 
 export const markAttendance = async (req, res) => {
-    const { classId, records } = req.body;
-
-    const today = new Date();
-    today.setHours(0, 0, 0, 0); // Normalize to midnight
-
+    const { classId, records, date } = req.body;
+    // console.log(req.body)
     try {
         // Step 1: Get today's attendance for the class
-        const existingAttendance = await Attendance.findOne({ classId, date: today });
+        const existingAttendance = await Attendance.findOne({ classId, date });
 
         // Step 2: Check if any student in records is already marked
         if (existingAttendance) {
@@ -32,7 +29,7 @@ export const markAttendance = async (req, res) => {
         // Step 4: Create new attendance document
         const newAttendance = await Attendance.create({
             classId,
-            date: today,
+            date,
             records
         });
 
@@ -53,7 +50,7 @@ export const getStudentAttendanceHistory = async (req, res) => {
         }, {
             date: 1,
             records: { $elemMatch: { studentId } }
-        }).sort({ date: 1 }).populate('records.studentId','status');
+        }).sort({ date: 1 }).populate('records.studentId', 'status');
 
         res.json(records);
     } catch (error) {
@@ -64,10 +61,10 @@ export const getStudentAttendanceHistory = async (req, res) => {
 
 export const updateAttendance = async (req, res) => {
     const { classId, date, studentId, newStatus } = req.body;
+    console.log(req.body)
     try {
         // Step 1: Find the attendance record for the class and date
-        const attendance = await Attendance.findOne({ classId, date});
-
+        const attendance = await Attendance.findOne({ classId, date });
         if (!attendance) {
             return res.status(404).json({ message: "Attendance not found for the given class and date" });
         }
@@ -97,8 +94,8 @@ export const getStudentAttendence = async (req, res) => {
 
     try {
         // 1. Fetch all records from the Attendance collection where this student exists
-        const attendanceRecords = await Attendance.find({ 
-            "records.studentId": studentId 
+        const attendanceRecords = await Attendance.find({
+            "records.studentId": studentId
         });
 
         if (attendanceRecords.length === 0) {
@@ -144,12 +141,11 @@ export const getStudentAttendence = async (req, res) => {
 // Get all attendance by class ID and date
 export const getAllAttendance = async (req, res) => {
     const { classId, date } = req.params;
-    // console.log(req.params)
+    //    console.log(req.params)
     try {
-        const formattedDate = date.slice(0, 10); 
         const attendanceRecords = await Attendance.find({
             classId,
-            date: formattedDate
+            date
         }).populate('records.studentId', 'firstName lastName email gender');
 
         if (!attendanceRecords || attendanceRecords.length === 0) {
