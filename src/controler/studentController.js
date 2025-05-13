@@ -121,8 +121,6 @@ export const getPackageByStudentId = async (req, res) => {
   }
 };
 
-
-
 // get payment history by student id
 export let getPaymentHistory = async (req, res) => {
   const { studentId } = req.params;  // Extract studentId from route parameters

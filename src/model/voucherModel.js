@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 
-const recipeSchema = new mongoose.Schema({
+const voucherSchema = new mongoose.Schema({
   packageId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Packages',
@@ -34,6 +34,6 @@ const recipeSchema = new mongoose.Schema({
   },
 });
 
-const Recipe = mongoose.model('Recipe', recipeSchema);
+const Voucher = mongoose.model('Voucher', voucherSchema);
 
-export default Recipe;
+export default Voucher;
