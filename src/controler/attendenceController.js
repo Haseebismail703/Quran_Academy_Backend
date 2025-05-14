@@ -1,6 +1,5 @@
 import Attendance from "../model/attendenceModel.js";
 
-
 // mark attendence 
 export const markAttendance = async (req, res) => {
     const { classId, records, date } = req.body;
@@ -158,4 +157,3 @@ export const getAllAttendance = async (req, res) => {
         res.status(500).json({ message: "Internal server error", error: error.message });
     }
 };
-

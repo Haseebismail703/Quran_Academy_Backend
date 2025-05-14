@@ -12,7 +12,7 @@ import { getAllAttendance, getStudentAttendanceHistory, getStudentAttendence, ma
 import { adminAllUserInchat, getMessage, getStudentsInChat, getTeacherInTheChat, message } from "../controler/chatController.js";
 import { createNotification, deleteNoti, getAllNotification, getNotificationsForUser, markNotificationAsRead } from "../controler/notificationController.js";
 import { createClassNotification, deleteNotification, getAllNotifications, getClassNotification, getNotificationsByClass } from "../controler/teacherNotification.js";
-import {  checkAndGenerateVoucher, createRecipe,  getLatestVoucher, updateRecipeImage,  updateVoucherStatus } from "../controler/recipeController.js";
+import {  checkAndGenerateVoucher, createRecipe,  getLatestVoucher, updateRecipeImage,  updateVoucherStatus } from "../controler/voucherController.js";
 const router = express.Router();
 
 let storage = multer.memoryStorage();

@@ -28,6 +28,13 @@ const voucherSchema = new mongoose.Schema({
     enum: ['pending', 'approved', 'rejected'],
     default: 'pending',
   },
+  feePaidDate : {
+    type : Date,
+  },
+  fee : {
+    type : Number,
+    default : 0
+  },
   createdAt: {
     type: Date,
     default: Date.now,

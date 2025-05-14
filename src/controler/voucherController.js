@@ -128,7 +128,7 @@ export const checkAndGenerateVoucher = async (req, res) => {
           status: "pending",
           month: currentMonth + 1,
           year: currentYear,
-          monthEnd: pkg.monthEnd
+          monthEnd: pkg.monthEnd,
         });
 
         const savedVoucher = await newVoucher.save();
@@ -138,7 +138,7 @@ export const checkAndGenerateVoucher = async (req, res) => {
 
     // Get all vouchers for this student (including newly created ones)
     const allVouchers = await Voucher.find({ studentId })
-      .populate('packageId', 'packageName')
+      .populate('packageId', 'packageName coursePrice')
       .populate('courseId', 'courseName')
       .sort({ createdAt: -1 });
 
@@ -260,7 +260,8 @@ export const updateVoucherStatus = async (req, res) => {
     }
 
     // Validate voucher existence
-    const voucher = await Voucher.findById(voucherId);
+    const voucher = await Voucher.findById(voucherId)
+    .populate('packageId','coursePrice')
     if (!voucher) {
       return res.status(404).json({ message: "Voucher not found" });
     }
@@ -268,6 +269,8 @@ export const updateVoucherStatus = async (req, res) => {
     // Reject: only update voucher status
     if (status === 'rejected') {
       voucher.status = 'rejected';
+      voucher.feePaidDate = new Date(0)
+      voucher.fee = 0
       await voucher.save();
 
       return res.status(200).json({
@@ -280,6 +283,8 @@ export const updateVoucherStatus = async (req, res) => {
     if (status === 'approved') {
       // Update voucher status
       voucher.status = 'approved';
+      voucher.feePaidDate = new Date()
+      voucher.fee = voucher.packageId?.coursePrice
       await voucher.save();
 
       // Dates
