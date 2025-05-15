@@ -717,7 +717,7 @@ export const getPaymentData = async (req, res) => {
         }
       ]),
 
-      // This month’s approved fee
+      // This month’s approved fee with count
       Voucher.aggregate([
         {
           $match: {
@@ -728,7 +728,8 @@ export const getPaymentData = async (req, res) => {
         {
           $group: {
             _id: null,
-            totalFee: { $sum: "$fee" }
+            totalFee: { $sum: "$fee" },
+            count: { $sum: 1 }
           }
         }
       ])
@@ -753,10 +754,12 @@ export const getPaymentData = async (req, res) => {
 
     const allTimePaidFeeAmount = allTimePaid[0]?.totalFee || 0;
     const thisMonthPaidFeeAmount = monthlyPaid[0]?.totalFee || 0;
+    const thisMonthPaidCount = monthlyPaid[0]?.count || 0;
 
     res.status(200).json({
       allTimePaidFeeAmount,
       thisMonthPaidFeeAmount,
+      thisMonthPaidCount,
       pendingFee,
       pendingFeeAmount,
       paidFee,
@@ -769,6 +772,7 @@ export const getPaymentData = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
 
 
 
