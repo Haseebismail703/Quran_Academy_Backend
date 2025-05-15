@@ -5,7 +5,7 @@ import { billingAddress } from "../controler/billingControler.js"
 import { getClassByTeacherId, getJoinStudentByClassId, addFile, deleteFile,getFilesByClassId, addClassLinkToStudent, getTeacherDashboardData } from "../controler/teacherController.js"
 import { createPackage, getAllPackages, buyPackage, deletePackage } from "../controler/packageController.js"
 import { getAllClassesByStudentId, getPackageByStudentId,getPaymentHistory } from "../controler/studentController.js"
-import { createClass, getAllClasses, addStudentToClass, removeStudentFromClass, getWaitingStudentCourseId, updateClass, deleteClass, getAllTeacher, getAllUserData, createCourse, getAllCourses, UpdateClassLink, updateCourseDetails, deleteCourse, getClassWithStudents, getCourseAndWaitingStudent, createCareer, getAllCareer, allUser } from '../controler/adminController.js'
+import { createClass, getAllClasses, addStudentToClass, removeStudentFromClass, getWaitingStudentCourseId, updateClass, deleteClass, getAllTeacher, getAllUserData, createCourse, getAllCourses, UpdateClassLink, updateCourseDetails, deleteCourse, getClassWithStudents, getCourseAndWaitingStudent, createCareer, getAllCareer, allUser, getAdminDasData, getPaymentData, getMonthlyApprovedFee } from '../controler/adminController.js'
 
 import multer from 'multer'
 import { getAllAttendance, getStudentAttendanceHistory, getStudentAttendence, markAttendance, updateAttendance } from "../controler/attendenceController.js";
@@ -38,6 +38,9 @@ router.get('/getCourseAndWaitingStudent', getCourseAndWaitingStudent)
 router.post('/createCareer',createCareer)
 router.get('/getAllCareer',getAllCareer)
 router.get('/allUser',allUser)
+router.get('/getAdminDasData',getAdminDasData)
+router.get('/getPaymentData',getPaymentData)
+router.get('/getMonthlyApprovedFee', getMonthlyApprovedFee)
 // auth routes
 router.post('/signupUser', signupUser);
 router.post('/signinUser', signinUser);

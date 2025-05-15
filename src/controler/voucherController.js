@@ -129,6 +129,7 @@ export const checkAndGenerateVoucher = async (req, res) => {
           month: currentMonth + 1,
           year: currentYear,
           monthEnd: pkg.monthEnd,
+          fee : pkg.coursePrice
         });
 
         const savedVoucher = await newVoucher.save();
@@ -270,7 +271,7 @@ export const updateVoucherStatus = async (req, res) => {
     if (status === 'rejected') {
       voucher.status = 'rejected';
       voucher.feePaidDate = new Date(0)
-      voucher.fee = 0
+      // voucher.fee = 0
       await voucher.save();
 
       return res.status(200).json({
@@ -284,7 +285,7 @@ export const updateVoucherStatus = async (req, res) => {
       // Update voucher status
       voucher.status = 'approved';
       voucher.feePaidDate = new Date()
-      voucher.fee = voucher.packageId?.coursePrice
+      // voucher.fee = voucher.packageId?.coursePrice
       await voucher.save();
 
       // Dates

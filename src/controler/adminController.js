@@ -3,6 +3,7 @@ import User from "../model/authModel.js";
 import Class from '../model/classModel.js'
 import Package from '../model/packageModel.js'
 import careerModel from '../model/careerModel.js';
+import Voucher from '../model/voucherModel.js';
 // create Course
 export let createCourse = async (req, res) => {
   try {
@@ -482,8 +483,7 @@ export let getCourseAndWaitingStudent = async (req, res) => {
   }
 }
 
-
-// crete Career  
+// create carrer
 export let createCareer = async (req, res) => {
   // console.log(req.body);
   try {
@@ -513,7 +513,7 @@ export let createCareer = async (req, res) => {
 // get all career 
 export let getAllCareer = async (req, res) => {
   try {
-    const getCareer = await careerModel.find().sort({createdAt : -1});
+    const getCareer = await careerModel.find().sort({ createdAt: -1 });
     return res.status(200).json(getCareer);
   } catch (error) {
     return res.status(500).json({ error: error.message });
@@ -522,12 +522,306 @@ export let getAllCareer = async (req, res) => {
 
 
 // get all user  // not use 
-export let allUser =  async(req,res) =>{ 
+export let allUser = async (req, res) => {
   try {
-      const users = await User.find({}, { password: 0 });
-      res.status(200).json(users);
+    const users = await User.find({}, { password: 0 });
+    res.status(200).json(users);
   } catch (error) {
-      res.status(500).json({ error: "Server error" });
+    res.status(500).json({ error: "Server error" });
   }
 
-} 
+}
+
+
+export const getAdminDasData = async (req, res) => {
+  try {
+    const startOfMonth = new Date();
+    startOfMonth.setDate(1);
+    startOfMonth.setHours(0, 0, 0, 0);
+
+    const [
+      newStudent,
+      allStudent,
+      newTeacher,
+      allTeacher,
+      newClass,
+      allClass,
+      newCourse,
+      allCourse,
+      newPackage,
+      allPackage,
+      fee,
+      allTimePaid,
+      monthlyPaid
+    ] = await Promise.all([
+      User.countDocuments({ created_at: { $gte: startOfMonth }, role: 'student' }),
+      User.countDocuments({ role: 'student' }),
+      User.countDocuments({ created_at: { $gte: startOfMonth }, role: 'teacher' }),
+      User.countDocuments({ role: 'teacher' }),
+      Class.countDocuments({ created_at: { $gte: startOfMonth } }),
+      Class.countDocuments({}),
+      Course.countDocuments({ created_at: { $gte: startOfMonth } }),
+      Course.countDocuments({}),
+      Package.countDocuments({ created_at: { $gte: startOfMonth } }),
+      Package.countDocuments({}),
+      Voucher.aggregate([
+        {
+          $match: {
+            status: { $in: ["pending", "approved", "rejected"] }
+          }
+        },
+        {
+          $group: {
+            _id: "$status",
+            count: { $sum: 1 },
+            totalFee: { $sum: "$fee" }
+          }
+        }
+      ]),
+      Voucher.aggregate([
+        {
+          $match: {
+            status: "approved"
+          }
+        },
+        {
+          $group: {
+            _id: null,
+            totalFee: { $sum: "$fee" }
+          }
+        }
+      ]),
+      Voucher.aggregate([
+        {
+          $match: {
+            status: "approved",
+            feePaidDate: { $gte: startOfMonth }
+          }
+        },
+        {
+          $group: {
+            _id: null,
+            totalFee: { $sum: "$fee" }
+          }
+        }
+      ])
+    ]);
+
+    let pendingFee = 0, pendingFeeAmount = 0;
+    let paidFee = 0, paidFeeAmount = 0;
+    let rejectFee = 0, rejectFeeAmount = 0;
+
+    fee.forEach(item => {
+      if (item._id === "pending") {
+        pendingFee = item.count;
+        pendingFeeAmount = item.totalFee;
+      } else if (item._id === "approved") {
+        paidFee = item.count;
+        paidFeeAmount = item.totalFee;
+      } else if (item._id === "rejected") {
+        rejectFee = item.count;
+        rejectFeeAmount = item.totalFee;
+      }
+    });
+
+    const allTimePaidFeeAmount = allTimePaid[0]?.totalFee || 0;
+    const thisMonthPaidFeeAmount = monthlyPaid[0]?.totalFee || 0;
+
+    const waitingStudentRaw = await User.find({ "classes.status": "waiting", role: "student" })
+      .select("firstName email profileUrl gender status classes")
+      .lean();
+
+    const waitingStudent = [];
+
+    for (const student of waitingStudentRaw) {
+      const waitingClasses = student.classes.filter(cls => cls.status === "waiting");
+
+      for (const cls of waitingClasses) {
+        const course = await Course.findById(cls.courseId).select("courseName").lean();
+        waitingStudent.push({
+          firstName: student.firstName,
+          email: student.email,
+          profileUrl: student.profileUrl,
+          gender: student.gender,
+          status: student.status,
+          course: {
+            _id: cls.courseId,
+            courseName: course?.courseName || "N/A"
+          }
+        });
+      }
+    }
+
+    res.status(200).json({
+      newStudent,
+      allStudent,
+      newTeacher,
+      allTeacher,
+      newClass,
+      allClass,
+      newCourse,
+      allCourse,
+      newPackage,
+      allPackage,
+      waitingStudent,
+      allTimePaidFeeAmount,
+      thisMonthPaidFeeAmount
+    });
+
+  } catch (err) {
+    console.error("Admin Dashboard Error:", err);
+    res.status(500).json({ error: err.message });
+  }
+};
+
+
+
+
+export const getPaymentData = async (req, res) => {
+  try {
+    const startOfMonth = new Date();
+    startOfMonth.setDate(1);
+    startOfMonth.setHours(0, 0, 0, 0);
+
+    const [
+      fee,
+      allTimePaid,
+      monthlyPaid
+    ] = await Promise.all([
+      // Fees by status
+      Voucher.aggregate([
+        {
+          $match: {
+            status: { $in: ["pending", "approved", "rejected"] }
+          }
+        },
+        {
+          $group: {
+            _id: "$status",
+            totalFee: { $sum: "$fee" },
+            count: { $sum: 1 }
+          }
+        }
+      ]),
+
+      // All-time approved fee
+      Voucher.aggregate([
+        {
+          $match: { status: "approved" }
+        },
+        {
+          $group: {
+            _id: null,
+            totalFee: { $sum: "$fee" }
+          }
+        }
+      ]),
+
+      // This month’s approved fee
+      Voucher.aggregate([
+        {
+          $match: {
+            status: "approved",
+            feePaidDate: { $gte: startOfMonth }
+          }
+        },
+        {
+          $group: {
+            _id: null,
+            totalFee: { $sum: "$fee" }
+          }
+        }
+      ])
+    ]);
+
+    let pendingFee = 0, pendingFeeAmount = 0;
+    let paidFee = 0, paidFeeAmount = 0;
+    let rejectFee = 0, rejectFeeAmount = 0;
+
+    fee.forEach(item => {
+      if (item._id === "pending") {
+        pendingFee = item.count;
+        pendingFeeAmount = item.totalFee;
+      } else if (item._id === "approved") {
+        paidFee = item.count;
+        paidFeeAmount = item.totalFee;
+      } else if (item._id === "rejected") {
+        rejectFee = item.count;
+        rejectFeeAmount = item.totalFee;
+      }
+    });
+
+    const allTimePaidFeeAmount = allTimePaid[0]?.totalFee || 0;
+    const thisMonthPaidFeeAmount = monthlyPaid[0]?.totalFee || 0;
+
+    res.status(200).json({
+      allTimePaidFeeAmount,
+      thisMonthPaidFeeAmount,
+      pendingFee,
+      pendingFeeAmount,
+      paidFee,
+      paidFeeAmount,
+      rejectFee,
+      rejectFeeAmount,
+    });
+
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+
+
+export const getMonthlyApprovedFee = async (req, res) => {
+  try {
+    const now = new Date();
+    const lastYear = new Date(now.getFullYear(), now.getMonth() - 11, 1); // 12 months back from current month
+
+    const result = await Voucher.aggregate([
+      {
+        $match: {
+          status: 'approved',
+          feePaidDate: { $gte: lastYear, $lte: now }
+        }
+      },
+      {
+        $group: {
+          _id: {
+            year: { $year: "$feePaidDate" },
+            month: { $month: "$feePaidDate" },
+          },
+          totalFee: { $sum: "$fee" }
+        }
+      },
+      {
+        $sort: {
+          "_id.year": 1,
+          "_id.month": 1
+        }
+      }
+    ]);
+
+    // Format result: convert month number to name
+    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+    const formattedData = [];
+
+    // Build a 12-month window
+    for (let i = 11; i >= 0; i--) {
+      const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const month = date.getMonth() + 1;
+      const year = date.getFullYear();
+
+      const match = result.find(r => r._id.year === year && r._id.month === month);
+      formattedData.push({
+        month: months[month - 1],
+        amount: match ? match.totalFee : 0
+      });
+    }
+
+    res.status(200).json(formattedData);
+  } catch (err) {
+    console.error("Error fetching monthly approved fees:", err);
+    res.status(500).json({ message: "Server Error" });
+  }
+};
