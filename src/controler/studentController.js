@@ -3,7 +3,8 @@ import Course from '../model/courseModel.js'
 import Package from '../model/packageModel.js'
 import File from '../model/fileModel.js'
 import Class from '../model/classModel.js'
-
+import Voucher from '../model/voucherModel.js'
+import Attendance from '../model/attendenceModel.js'
 // get all class by student id 
 export const getAllClassesByStudentId = async (req, res) => {
   try {
@@ -146,6 +147,81 @@ export let getPaymentHistory = async (req, res) => {
     res.status(500).json({ error: "Internal Server Error", details: error.message });
   }
 };
+
+
+
+export const getStudentDashboardData = async (req, res) => {
+  try {
+    const { studentId } = req.params;
+
+    if (!studentId) {
+      return res.status(400).json({ error: "Student ID is required" });
+    }
+    // Fee calculations
+    const [approvedVouchers, pendingVouchers, rejectedVouchers, lastPaid] = await Promise.all([
+      Voucher.find({ studentId, status: "approved" }),
+      Voucher.find({ studentId, status: "pending" }),
+      Voucher.find({ studentId, status: "rejected" }),
+      Voucher.findOne({ studentId, status: "approved" }).sort({ feePaidDate: -1 }),
+    ]);
+
+    const totalPaidFee = approvedVouchers.reduce((sum, v) => sum + v.fee, 0);
+    const pendingFee = pendingVouchers.reduce((sum, v) => sum + v.fee, 0);
+    const rejectedFee = rejectedVouchers.reduce((sum, v) => sum + v.fee, 0);
+    const lastPaidFee = lastPaid?.fee || 0;
+
+    // Attendance progress
+    const [totalAttendanceRecords, presentAttendance, absentAttendance] = await Promise.all([
+      Attendance.countDocuments({
+        records: { $elemMatch: { studentId: studentId } }
+      }),
+      Attendance.countDocuments({
+        records: { $elemMatch: { studentId: studentId, status: "Present" } }
+      }),
+      Attendance.countDocuments({
+        records: { $elemMatch: { studentId: studentId, status: "Absent" } }
+      }),
+    ]);
+
+    const attendanceProgress =
+      totalAttendanceRecords > 0
+        ? Math.round((presentAttendance / totalAttendanceRecords) * 100)
+        : 0;
+
+    // Total packages and classes
+    const totalPackages = await Package.countDocuments({ students: studentId });
+    const totalClasses = await Class.countDocuments({
+      students: {
+        $elemMatch: {
+          studentId: studentId
+        }
+      }
+    });
+
+    res.status(200).json({
+      totalPaidFee,
+      lastPaidFee,
+      pendingFee,
+      rejectedFee,
+      totalPackages,
+      totalClasses,
+      attendance: {
+        total: totalAttendanceRecords,
+        present: presentAttendance,
+        absent: absentAttendance,
+        progressPercentage: attendanceProgress
+      }
+    });
+
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+
+
+
+
 
 
   
