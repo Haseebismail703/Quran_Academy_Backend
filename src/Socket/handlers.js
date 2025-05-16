@@ -49,6 +49,9 @@ export const handleSocketEvents = (socket, io, activeUsers) => {
     }
   });
 
+  
+
+
   socket.on("disconnect", () => {
     for (const [userId, socketId] of activeUsers.entries()) {
       if (socketId === socket.id) {

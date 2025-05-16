@@ -5,6 +5,9 @@ import File from '../model/fileModel.js'
 import cloudinary from '../confiq/cloudinary.js'
 import streamifier from 'streamifier';
 import Class from '../model/classModel.js'
+import Attendance from '../model/attendenceModel.js'
+import sendNotify from '../utils/sendNotify.js'
+import {io} from '../Socket/SocketConfiq.js'
 // get Class by teacher id
 export const getClassByTeacherId = async (req, res) => {
     try {
@@ -173,8 +176,9 @@ export const getFilesByClassIdAndStudentId = async (req, res) => {
 
 // addd class link using student id
 export const addClassLinkToStudent = async (req, res) => {
-    const { classLink } = req.body;
-    const { studentId } = req.params
+    const { classLink ,teacherId} = req.body;
+    const { studentId  } = req.params
+    console.log(req.body)
     try {
         const updatedClass = await Class.findOneAndUpdate(
             { 'students.studentId': studentId },
@@ -184,6 +188,15 @@ export const addClassLinkToStudent = async (req, res) => {
 
         if (!updatedClass) {
             return res.status(404).json({ message: 'Class with this student not found' });
+        }
+
+        if (updatedClass) {
+            const notify = await sendNotify({
+                senderId : teacherId ,
+                receiverId : studentId ,
+                message: "Class link added come fast",
+                role : "admin"
+            }, io);
         }
 
         res.status(200).json({
@@ -257,3 +270,49 @@ export const getTeacherDashboardData = async (req, res) => {
         res.status(500).json({ success: false, message: "Something went wrong", error });
     }
 };
+
+
+
+
+export const getD = async (req, res) => {
+    const { teacherId } = req.params;
+
+    try {
+        // 1. Get all attendance records with teacherId via populated class
+        const allAttendances = await Attendance.find()
+            .populate({
+                path: 'classId',
+                select: 'teacherId'
+            });
+
+        // 2. Filter attendances by teacherId
+        const filteredAttendances = allAttendances.filter(att =>
+            att.classId?.teacherId?.toString() === teacherId
+        );
+        console.log(filteredAttendances.length)
+        // 3. Accumulate total and present counts
+        let totalRecords = 0;
+        let totalPresent = 0;
+
+        filteredAttendances.forEach(att => {
+            att.records.forEach(record => {
+                totalRecords += 1;
+                if (record.status === 'Present') totalPresent += 1;
+            });
+        });
+
+        // 4. Calculate overall present percentage
+        const progress = totalRecords > 0 ? ((totalPresent / totalRecords) * 100).toFixed(2) : '0.00';
+
+        res.status(200).json({
+            success: true,
+            totalStudentsMarked: totalRecords,
+            totalPresent,
+            progress: `${progress}%`
+        });
+
+    } catch (error) {
+        res.status(500).json({ success: false, message: "Something went wrong", error });
+    }
+};
+

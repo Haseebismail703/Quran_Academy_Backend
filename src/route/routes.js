@@ -2,7 +2,7 @@ import express from "express";
 import { signupUser, signinUser, adminLogin, updateUser, logOut,updateStatusAndFirstName, updatePassword, getProfile } from '../controler/authController.js'
 import { creatReview, getReview } from '../controler/reviewController.js'
 import { billingAddress } from "../controler/billingControler.js"
-import { getClassByTeacherId, getJoinStudentByClassId, addFile, deleteFile,getFilesByClassId, addClassLinkToStudent, getTeacherDashboardData } from "../controler/teacherController.js"
+import { getClassByTeacherId, getJoinStudentByClassId, addFile, deleteFile,getFilesByClassId, addClassLinkToStudent, getTeacherDashboardData, getD } from "../controler/teacherController.js"
 import { createPackage, getAllPackages, buyPackage, deletePackage } from "../controler/packageController.js"
 import { getAllClassesByStudentId, getPackageByStudentId,getPaymentHistory, getStudentDashboardData } from "../controler/studentController.js"
 import { createClass, getAllClasses, addStudentToClass, removeStudentFromClass, getWaitingStudentCourseId, updateClass, deleteClass, getAllTeacher, getAllUserData, createCourse, getAllCourses, UpdateClassLink, updateCourseDetails, deleteCourse, getClassWithStudents, getCourseAndWaitingStudent, createCareer, getAllCareer, allUser, getAdminDasData, getPaymentData, getMonthlyApprovedFee } from '../controler/adminController.js'
@@ -69,6 +69,7 @@ router.delete('/deleteFile/:fileId', deleteFile);
 router.put('/addClassLink/:studentId', addClassLinkToStudent)
 router.get('/getAllAttendance/:classId/:date',getAllAttendance)
 router.get('/teacher-dashboard/:teacherId', getTeacherDashboardData);
+router.get('/getD/:teacherId',getD)
 // student route
 router.get('/getAllClassesByStudentId/:studentId', getAllClassesByStudentId);
 router.get('/getFilesByClassId/:classId', getFilesByClassId);
