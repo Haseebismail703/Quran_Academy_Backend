@@ -1,4 +1,7 @@
 import Attendance from "../model/attendenceModel.js";
+import Class from "../model/classModel.js";
+import { io } from "../Socket/SocketConfiq.js";
+import { sendNotify } from "../utils/sendNotify.js";
 
 // mark attendence 
 export const markAttendance = async (req, res) => {
@@ -31,6 +34,16 @@ export const markAttendance = async (req, res) => {
             date,
             records
         });
+
+        let getClass = await Class.findById(classId)
+        let getStudents = await getClass.students.map(ids => ids.studentId)
+        if (newAttendance) {
+            const notify = await sendNotify({
+                senderId: getClass.teacherId,
+                receiverId: getStudents,
+                message: `Attendance marked for ${date}`,
+            }, io);
+        }
 
         res.status(201).json({ message: "Attendance marked successfully", attendance: newAttendance });
     } catch (error) {

@@ -2,7 +2,8 @@ import cloudinary from "../confiq/cloudinary.js";
 import User from "../model/authModel.js";
 import Package from "../model/packageModel.js";
 import Voucher from "../model/voucherModel.js";
-
+import { sendNotify } from "../utils/sendNotify.js";
+import { io } from '../Socket/SocketConfiq.js'
 
 export let createRecipe = async (req, res) => {
   const { packageId, courseId, studentId } = req.body;
@@ -64,9 +65,9 @@ export const checkAndGenerateVoucher = async (req, res) => {
     const { studentId } = req.params;
 
     if (!studentId) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Student ID is required' 
+      return res.status(400).json({
+        success: false,
+        message: 'Student ID is required'
       });
     }
 
@@ -75,7 +76,7 @@ export const checkAndGenerateVoucher = async (req, res) => {
     today.setHours(0, 0, 0, 0);
 
     // Find all active packages for the student
-    const studentPackages = await Package.find({ 
+    const studentPackages = await Package.find({
       studentId,
     });
 
@@ -129,7 +130,7 @@ export const checkAndGenerateVoucher = async (req, res) => {
           month: currentMonth + 1,
           year: currentYear,
           monthEnd: pkg.monthEnd,
-          fee : pkg.coursePrice
+          fee: pkg.coursePrice
         });
 
         const savedVoucher = await newVoucher.save();
@@ -145,8 +146,8 @@ export const checkAndGenerateVoucher = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      message: newVouchers.length > 0 
-        ? `${newVouchers.length} new voucher(s) generated` 
+      message: newVouchers.length > 0
+        ? `${newVouchers.length} new voucher(s) generated`
         : 'No new voucher needed',
       data: {
         vouchers: allVouchers,
@@ -172,13 +173,13 @@ export const getLatestVoucher = async (req, res) => {
   try {
     const latestVoucher = await Voucher.find({
       status: { $in: ['pending', 'approved', 'rejected'] },  // filter allowed statuses
-      recipeUrl: { $ne: ''  }, 
+      recipeUrl: { $ne: '' },
     })
       .sort({ createdAt: -1 })
       .populate('studentId', 'firstName')
       .populate('courseId', 'courseName')
       .populate('packageId', 'packageName');
-      console.log(latestVoucher)
+    console.log(latestVoucher)
     res.status(200).json(latestVoucher);
   } catch (error) {
     res.status(500).json({
@@ -190,7 +191,7 @@ export const getLatestVoucher = async (req, res) => {
 };
 
 export const updateRecipeImage = async (req, res) => {
-  const { recipeId  } = req.body;
+  const { recipeId } = req.body;
   const file = req.file;
 
   if (!file) {
@@ -199,7 +200,7 @@ export const updateRecipeImage = async (req, res) => {
 
   try {
     // Get latest voucher entry for that student and course
-    const latestVoucher = await Voucher.findById(recipeId )
+    const latestVoucher = await Voucher.findById(recipeId)
 
     if (!latestVoucher) {
       return res.status(404).json({
@@ -251,9 +252,22 @@ export const updateRecipeImage = async (req, res) => {
 
 // update recipe  status and package update 
 export const updateVoucherStatus = async (req, res) => {
-  const { studentId, courseId, status, voucherId } = req.body;
-// console.log(req.body)
+  const { studentId, courseId, status, voucherId, adminId } = req.body;
+  // console.log(req.body)
   try {
+
+    // notify the student 
+    let feeText = status === "approved" ? '✅ Fee received. Thank you!' : "⚠️ fee rejected. Contact admin."
+    let notify = async () => {
+      await sendNotify({
+        senderId: adminId,
+        receiverId: [studentId],
+        message: feeText,
+      }, io);
+    }
+
+
+
     // Validate student existence
     const student = await User.findById(studentId);
     if (!student) {
@@ -262,7 +276,7 @@ export const updateVoucherStatus = async (req, res) => {
 
     // Validate voucher existence
     const voucher = await Voucher.findById(voucherId)
-    .populate('packageId','coursePrice')
+      .populate('packageId', 'coursePrice')
     if (!voucher) {
       return res.status(404).json({ message: "Voucher not found" });
     }
@@ -273,7 +287,7 @@ export const updateVoucherStatus = async (req, res) => {
       voucher.feePaidDate = new Date(0)
       // voucher.fee = 0
       await voucher.save();
-
+      notify()
       return res.status(200).json({
         message: "Voucher rejected successfully",
         data: voucher
@@ -282,12 +296,13 @@ export const updateVoucherStatus = async (req, res) => {
 
     // Approve: update voucher and run course logic
     if (status === 'approved') {
+
       // Update voucher status
       voucher.status = 'approved';
       voucher.feePaidDate = new Date()
       // voucher.fee = voucher.packageId?.coursePrice
       await voucher.save();
-
+      notify()
       // Dates
       const currentDate = new Date();
       const startDate = currentDate.toISOString().split("T")[0];
@@ -329,7 +344,6 @@ export const updateVoucherStatus = async (req, res) => {
       }
 
       await student.save();
-
       return res.status(200).json({
         message: "Voucher approved and course added successfully",
         data: student

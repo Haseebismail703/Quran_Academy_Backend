@@ -13,6 +13,7 @@ import { adminAllUserInchat, getMessage, getStudentsInChat, getTeacherInTheChat,
 import { createNotification, deleteNoti, getAllNotification, getNotificationsForUser, markNotificationAsRead } from "../controler/notificationController.js";
 import { createClassNotification, deleteNotification, getAllNotifications, getClassNotification, getNotificationsByClass } from "../controler/teacherNotification.js";
 import {  checkAndGenerateVoucher, createRecipe,  getLatestVoucher, updateRecipeImage,  updateVoucherStatus } from "../controler/voucherController.js";
+import { getNotify, markAllAsRead } from "../utils/sendNotify.js";
 const router = express.Router();
 
 let storage = multer.memoryStorage();
@@ -110,6 +111,10 @@ router.get('/getLatestVoucher', getLatestVoucher);
 router.put('/recipe/update', upload.single('file'), updateRecipeImage);
 router.put('/updateVoucherStatus',updateVoucherStatus)
 router.get('/generate-voucher/:studentId/:courseId/:packageId', checkAndGenerateVoucher);
+
+// Notify
+router.get('/getNotify/:receiverId' , getNotify)
+router.put('/read-all/:receiverId', markAllAsRead);
 
 export default router
 

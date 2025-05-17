@@ -3,27 +3,23 @@ import mongoose from "mongoose";
 const notify = new mongoose.Schema({
     senderId: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
+        ref: 'Users',
         required: true
     },
-    receiverId: {
+    receiverId: [{
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
+        ref: 'Users',
         required: true
-    },
+    }],
     message: {
         type: String,
         required: true,
     },
-    role: {
-        type: String,
-        enum: ["students", "teacher", "admin"],
-        default: "",
-    },
+
     readBy: [
         {
             type: mongoose.Schema.Types.ObjectId,
-            ref: 'User'
+            ref: 'Users'
         }
     ]
 }, {

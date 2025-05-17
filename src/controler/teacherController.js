@@ -6,8 +6,8 @@ import cloudinary from '../confiq/cloudinary.js'
 import streamifier from 'streamifier';
 import Class from '../model/classModel.js'
 import Attendance from '../model/attendenceModel.js'
-import sendNotify from '../utils/sendNotify.js'
-import {io} from '../Socket/SocketConfiq.js'
+import { sendNotify } from '../utils/sendNotify.js'
+import { io } from '../Socket/SocketConfiq.js'
 // get Class by teacher id
 export const getClassByTeacherId = async (req, res) => {
     try {
@@ -91,6 +91,16 @@ export const addFile = async (req, res) => {
         });
 
         await fileData.save();
+
+        let getClass = await Class.findById(classId)
+        let getStudent = await getClass.students.map(ids => ids.studentId)
+        if (fileData) {
+            const notify = await sendNotify({
+                senderId: getClass.teacherId,
+                receiverId: [getStudent],
+                message: `A study material ${type} has been added.`,
+            }, io);
+        }
 
         res.status(200).json({ message: `${type.toUpperCase()} uploaded successfully`, data: fileData });
     } catch (error) {
@@ -176,9 +186,8 @@ export const getFilesByClassIdAndStudentId = async (req, res) => {
 
 // addd class link using student id
 export const addClassLinkToStudent = async (req, res) => {
-    const { classLink ,teacherId} = req.body;
-    const { studentId  } = req.params
-    console.log(req.body)
+    const { classLink, teacherId } = req.body;
+    const { studentId } = req.params
     try {
         const updatedClass = await Class.findOneAndUpdate(
             { 'students.studentId': studentId },
@@ -189,13 +198,11 @@ export const addClassLinkToStudent = async (req, res) => {
         if (!updatedClass) {
             return res.status(404).json({ message: 'Class with this student not found' });
         }
-
-        if (updatedClass) {
+        if (updatedClass && classLink !== '') {
             const notify = await sendNotify({
-                senderId : teacherId ,
-                receiverId : studentId ,
-                message: "Class link added come fast",
-                role : "admin"
+                senderId: teacherId,
+                receiverId: [studentId],
+                message: "Class link added join the class",
             }, io);
         }
 

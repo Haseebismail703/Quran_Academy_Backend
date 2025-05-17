@@ -1,5 +1,7 @@
 import TecaherNotification from "../model/techerNotificationModel.js";
-
+import Class from '../model/classModel.js'
+import { sendNotify } from "../utils/sendNotify.js";
+import { io } from "../Socket/SocketConfiq.js";
 // Get all notifications
 export const getAllNotifications = async (req, res) => {
   try {
@@ -26,10 +28,13 @@ export const getNotificationsByClass = async (req, res) => {
 // Create a new notification
 export const createClassNotification = async (req, res) => {
   const { title, message, expiryDate, classId } = req.body;
-console.log(req.body)
+
   if (!title || !message || !expiryDate || !classId) {
     return res.status(400).json({ error: "All fields are required" });
   }
+
+  let findClass = await Class.findById(classId)
+  let getStudentId = findClass.students.map(ids => ids.studentId);
 
   try {
     const newNotification = new TecaherNotification({
@@ -40,6 +45,16 @@ console.log(req.body)
     });
 
     await newNotification.save();
+
+
+    if (newNotification) {
+      const notify = await sendNotify({
+        senderId: findClass.teacherId,
+        receiverId: getStudentId,
+        message: "Class notification added",
+      }, io);
+    }
+
     res.status(201).json({ message: "Notification created", notification: newNotification });
   } catch (error) {
     console.error("Error creating notification:", error);
@@ -67,14 +82,14 @@ export const deleteNotification = async (req, res) => {
 
 // get notication in studetn class page 
 export let getClassNotification = async (req, res) => {
-    try {
-        const currentDate = new Date();
-        const notifications = await TecaherNotification.find({
-            expiryDate: { $gt: currentDate }
-        });
-        res.status(200).json(notifications);
-    } catch (error) {
-        console.error("Error fetching notifications:", error);
-        res.status(500).json({ message: "Failed to fetch notifications." });
-    }
+  try {
+    const currentDate = new Date();
+    const notifications = await TecaherNotification.find({
+      expiryDate: { $gt: currentDate }
+    });
+    res.status(200).json(notifications);
+  } catch (error) {
+    console.error("Error fetching notifications:", error);
+    res.status(500).json({ message: "Failed to fetch notifications." });
+  }
 };

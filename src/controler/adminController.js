@@ -4,6 +4,8 @@ import Class from '../model/classModel.js'
 import Package from '../model/packageModel.js'
 import careerModel from '../model/careerModel.js';
 import Voucher from '../model/voucherModel.js';
+import { sendNotify } from '../utils/sendNotify.js';
+import { io } from '../Socket/SocketConfiq.js';
 // create Course
 export let createCourse = async (req, res) => {
   try {
@@ -147,7 +149,7 @@ export let getAllClasses = async (req, res) => {
 
 
 export let addStudentToClass = async (req, res) => {
-  const { classId, studentId, timing } = req.body;
+  const { classId, studentId, timing, adminId } = req.body;
 
   try {
     const student = await User.findById(studentId);
@@ -197,11 +199,11 @@ export let addStudentToClass = async (req, res) => {
     endDateObj.setMonth(endDateObj.getMonth() + 1); // Move to next month
     const endDate = endDateObj.toISOString().split("T")[0]; // Same day of next month in YYYY-MM-DD format
 
-    console.log("Start Date:", startDate);
-    console.log("End Date:", endDate); // Logs the calculated dates
+    // console.log("Start Date:", startDate);
+    // console.log("End Date:", endDate); 
 
     // Update package document
-    await Package.updateOne(
+    let creatPackage = await Package.updateOne(
       { studentId, courseId },
       {
         $set: {
@@ -213,6 +215,13 @@ export let addStudentToClass = async (req, res) => {
       { upsert: true } // This ensures the document is created if it doesn't already exist
     );
 
+    if (creatPackage) {
+      const notify = await sendNotify({
+        senderId: adminId,
+        receiverId: [studentId],
+        message: "Added a new class",
+      }, io);
+    }
     res.status(200).json({
       message: "Student successfully added to class",
       class: classData
@@ -225,8 +234,8 @@ export let addStudentToClass = async (req, res) => {
 };
 // remove the student from class
 export const removeStudentFromClass = async (req, res) => {
-  const { classId, studentId } = req.body;
-  console.log(req.body)
+  const { classId, studentId, adminId } = req.body;
+  // console.log(req.body)
   try {
     const classData = await Class.findById(classId);
     if (!classData) {
@@ -261,6 +270,14 @@ export const removeStudentFromClass = async (req, res) => {
     await student.save();
     // Save the updated class data
     await classData.save();
+
+    if (student) {
+      const notify = await sendNotify({
+        senderId: adminId,
+        receiverId: [studentId],
+        message: "Remove from class",
+      }, io);
+    }
 
     res.status(200).json({
       message: "Student successfully removed from class",
