@@ -41,7 +41,7 @@ export const markAttendance = async (req, res) => {
             const notify = await sendNotify({
                 senderId: getClass.teacherId,
                 receiverId: getStudents,
-                message: `Attendance marked for ${date}`,
+                message: `✅ Attendance marked on ${date}`,
             }, io);
         }
 

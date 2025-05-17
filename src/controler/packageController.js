@@ -8,7 +8,7 @@ import { io } from "../Socket/SocketConfiq.js";
 
 // create a new package
 const createPackage = async (req, res) => {
-  console.log("create package", req.body)
+  // console.log("create package", req.body)
   try {
     const { packageName, coursePrice, classPerMonth, classPerWeek, classType, sessionDuration, studentId, courseId ,adminId} = req.body;
     // check student id is valid
@@ -37,6 +37,7 @@ const createPackage = async (req, res) => {
         senderId: adminId,
         receiverId: [studentId],
         message: "📦 Your package is ready.",
+        path : "/student/fee"
       }, io);
     }
     res.status(200).json({ message: "Package created successfully", data: newPackage });

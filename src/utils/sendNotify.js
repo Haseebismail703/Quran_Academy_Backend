@@ -1,13 +1,14 @@
 import User from '../model/authModel.js';
 import Notify from '../model/notifyModel.js';
 
-export const sendNotify = async ({ senderId, receiverId, message }, io) => {
+export const sendNotify = async ({ senderId, receiverId, message , path }, io) => {
     try {
         const notify = await Notify.create({
             senderId,
             receiverId,
             message,
-            readBy: []
+            readBy: [],
+            path
         });
         let getUser = await User.findById(senderId)
         if (notify) {
@@ -18,6 +19,7 @@ export const sendNotify = async ({ senderId, receiverId, message }, io) => {
                 message: notify.message,
                 readBy: false,
                 created_at: notify.created_at,
+                path
 
             });
         }

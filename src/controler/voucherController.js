@@ -263,6 +263,7 @@ export const updateVoucherStatus = async (req, res) => {
         senderId: adminId,
         receiverId: [studentId],
         message: feeText,
+        path : "/student/feevoucher"
       }, io);
     }
 

@@ -21,7 +21,11 @@ const notify = new mongoose.Schema({
             type: mongoose.Schema.Types.ObjectId,
             ref: 'Users'
         }
-    ]
+    ],
+    path: {
+        type: String,
+        default: ''
+    }
 }, {
     timestamps: {
         createdAt: 'created_at',

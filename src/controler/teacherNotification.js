@@ -2,6 +2,7 @@ import TecaherNotification from "../model/techerNotificationModel.js";
 import Class from '../model/classModel.js'
 import { sendNotify } from "../utils/sendNotify.js";
 import { io } from "../Socket/SocketConfiq.js";
+import Course from "../model/courseModel.js";
 // Get all notifications
 export const getAllNotifications = async (req, res) => {
   try {
@@ -34,6 +35,7 @@ export const createClassNotification = async (req, res) => {
   }
 
   let findClass = await Class.findById(classId)
+  .populate('courseId','courseName')
   let getStudentId = findClass.students.map(ids => ids.studentId);
 
   try {
@@ -51,7 +53,8 @@ export const createClassNotification = async (req, res) => {
       const notify = await sendNotify({
         senderId: findClass.teacherId,
         receiverId: getStudentId,
-        message: "Class notification added",
+        message: `📢 No class today! course ${findClass.courseId?.courseName}`,
+        path : "/student/class"
       }, io);
     }
 

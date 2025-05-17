@@ -219,7 +219,8 @@ export let addStudentToClass = async (req, res) => {
       const notify = await sendNotify({
         senderId: adminId,
         receiverId: [studentId],
-        message: "Added a new class",
+        message: "You are added a new class",
+        path : "/student/class"
       }, io);
     }
     res.status(200).json({

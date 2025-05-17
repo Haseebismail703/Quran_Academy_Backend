@@ -98,7 +98,8 @@ export const addFile = async (req, res) => {
             const notify = await sendNotify({
                 senderId: getClass.teacherId,
                 receiverId: [getStudent],
-                message: `A study material ${type} has been added.`,
+                message: `A study material ${type === "pdf" ? "📄 (PDF)" : "🖼️ (Image)"} has been added.`,
+                path : `/student/class/resources/${classId}`
             }, io);
         }
 
@@ -203,6 +204,7 @@ export const addClassLinkToStudent = async (req, res) => {
                 senderId: teacherId,
                 receiverId: [studentId],
                 message: "Class link added join the class",
+                path : "/student/class"
             }, io);
         }
 
