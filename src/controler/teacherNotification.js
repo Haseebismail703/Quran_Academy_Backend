@@ -3,6 +3,7 @@ import Class from '../model/classModel.js'
 import { sendNotify } from "../utils/sendNotify.js";
 import { io } from "../Socket/SocketConfiq.js";
 import Course from "../model/courseModel.js";
+import User from "../model/authModel.js";
 // Get all notifications
 export const getAllNotifications = async (req, res) => {
   try {
@@ -28,7 +29,7 @@ export const getNotificationsByClass = async (req, res) => {
 
 // Create a new notification
 export const createClassNotification = async (req, res) => {
-  const { title, message, expiryDate, classId } = req.body;
+  const { title, message, expiryDate, classId  } = req.body;
 
   if (!title || !message || !expiryDate || !classId) {
     return res.status(400).json({ error: "All fields are required" });
@@ -50,10 +51,23 @@ export const createClassNotification = async (req, res) => {
 
 
     if (newNotification) {
+      let date = new Date()
+      let onlyDate = date.toISOString().split('T')[0];
+      // create noti for student 
       const notify = await sendNotify({
         senderId: findClass.teacherId,
         receiverId: getStudentId,
-        message: `📢 No class today! course ${findClass.courseId?.courseName}`,
+        message: `📢 No class ${onlyDate} course ${findClass.courseId?.courseName}`,
+        path : "/student/class"
+      }, io);
+
+      // create noti for admin
+      let getUser = await User.find({role : 'admin'})
+      let adminIds = getUser.map(ids => ids._id)
+       const notifyadmin = await sendNotify({
+        senderId: findClass.teacherId,
+        receiverId: adminIds,
+        message: `📢 Class has been cancelled by the teacher ${onlyDate} course ${findClass.courseId?.courseName}`,
         path : "/student/class"
       }, io);
     }

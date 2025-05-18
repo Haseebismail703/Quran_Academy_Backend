@@ -191,7 +191,7 @@ export const getLatestVoucher = async (req, res) => {
 };
 
 export const updateRecipeImage = async (req, res) => {
-  const { recipeId } = req.body;
+  const { recipeId,studentId } = req.body;
   const file = req.file;
 
   if (!file) {
@@ -236,6 +236,17 @@ export const updateRecipeImage = async (req, res) => {
     latestVoucher.status = 'pending'
     await latestVoucher.save();
 
+
+    if(uploadResult){
+      let getUser = await User.find({role : "admin"})
+      let adminId = getUser.map(ids=> ids._id)
+      const notify = await sendNotify({
+        senderId: studentId,
+        receiverId: [adminId],
+        message: "💰 Fee has been submitted by the student.",
+        path : "/admin/allvoucher"
+      }, io);
+    }
     res.status(200).json({
       success: true,
       message: 'Voucher recipe image updated successfully',
@@ -361,3 +372,4 @@ export const updateVoucherStatus = async (req, res) => {
     });
   }
 };
+
