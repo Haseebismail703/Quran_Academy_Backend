@@ -12,7 +12,7 @@ const adminNotificationSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ["student", "teacher", "all"],
+    enum: ["students", "teachers"],
     default: "all",
   },
   isRead: {

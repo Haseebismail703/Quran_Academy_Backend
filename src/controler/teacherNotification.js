@@ -68,7 +68,7 @@ export const createClassNotification = async (req, res) => {
         senderId: findClass.teacherId,
         receiverId: adminIds,
         message: `📢 Class has been cancelled by the teacher ${onlyDate} course ${findClass.courseId?.courseName}`,
-        path : "/student/class"
+        path : "/admin/manage-class"
       }, io);
     }
 

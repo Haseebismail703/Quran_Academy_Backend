@@ -216,12 +216,22 @@ export let addStudentToClass = async (req, res) => {
     );
 
     if (creatPackage) {
-      const notify = await sendNotify({
+      // create notify  for student 
+      const notifyStudent = await sendNotify({
         senderId: adminId,
         receiverId: [studentId],
-        message: "You are added a new class",
-        path : "/student/class"
+        message: "🎓 You've been added to the class Get ready to learn! 📘",
+        path: "/student/class"
       }, io);
+      // create notify for teacher 
+      let teacherId = classData.teacherId
+      const notifyteacher = await sendNotify({
+        senderId: adminId,
+        receiverId: [teacherId],
+        message: "👨‍🎓 A new student has joined via Admin. Let's welcome them! 🙌",
+        path: `/teacher/class/enrolled-student/${classData._id}`
+      }, io);
+
     }
     res.status(200).json({
       message: "Student successfully added to class",
@@ -273,10 +283,20 @@ export const removeStudentFromClass = async (req, res) => {
     await classData.save();
 
     if (student) {
-      const notify = await sendNotify({
+      // create for student
+      const notifyStudent = await sendNotify({
         senderId: adminId,
         receiverId: [studentId],
-        message: "Remove from class",
+        path: "/student/class",
+        message: "🚫 You've been removed from class For more info, reach out to your Admin. 🧑‍💼",
+      }, io);
+      // create for teacher 
+      let teacherId = classData.teacherId
+      const notifyTeacher = await sendNotify({
+        senderId: adminId,
+        receiverId: [teacherId],
+        path: `/teacher/class/enrolled-student/${classData._id}`,
+        message: "🚫 A student was removed from youre class by Admin. You may review your class list. 📋",
       }, io);
     }
 

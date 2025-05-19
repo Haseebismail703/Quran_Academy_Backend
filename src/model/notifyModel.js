@@ -9,8 +9,11 @@ const notify = new mongoose.Schema({
     receiverId: [{
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Users',
-        required: true
     }],
+    receiverType: {
+        type: [String],
+        enum: ["students", "teachers", "all"],
+    },
     message: {
         type: String,
         required: true,

@@ -224,7 +224,7 @@ export const getTeacherDashboardData = async (req, res) => {
     try {
         const { teacherId } = req.params;
 
-        // Fetch all classes of the teacher with student details
+        // Step 1: Get all classes of the teacher with student details
         const classes = await Class.find({ teacherId })
             .populate("students.studentId", "firstName lastName email gender profileUrl");
 
@@ -252,10 +252,8 @@ export const getTeacherDashboardData = async (req, res) => {
 
                     allStudents.push(currentStudent);
 
-                    // Extract hour from timing string (like "7 PM to 1 AM")
-                    const startHourStr = st.studentTiming?.split("to")[0]?.trim(); // e.g. "7 PM"
-                    const parsedDate = Date.parse(`01 Jan 2025 ${startHourStr}`); // dummy date
-
+                    const startHourStr = st.studentTiming?.split("to")[0]?.trim(); // e.g., "7 PM"
+                    const parsedDate = Date.parse(`01 Jan 2025 ${startHourStr}`);
                     if (!isNaN(parsedDate)) {
                         if (!earliestTime || parsedDate < earliestTime) {
                             earliestTime = parsedDate;
@@ -266,12 +264,53 @@ export const getTeacherDashboardData = async (req, res) => {
             });
         });
 
+        // Step 2: Get attendance records and calculate average attendance
+        const AttendanceRecords = await Attendance.find()
+            .populate({
+                path: 'classId',
+                select: 'teacherId'
+            });
+
+        const filteredAttendances = AttendanceRecords.filter(att =>
+            att.classId?.teacherId?.toString() === teacherId
+        );
+
+        const studentStats = {};
+
+        filteredAttendances.forEach(att => {
+            att.records.forEach(record => {
+                const studentId = record.studentId.toString();
+                if (!studentStats[studentId]) {
+                    studentStats[studentId] = { present: 0, total: 0 };
+                }
+
+                studentStats[studentId].total += 1;
+                if (record.status === 'Present') {
+                    studentStats[studentId].present += 1;
+                }
+            });
+        });
+
+        const percentages = [];
+        for (const studentId in studentStats) {
+            const { present, total } = studentStats[studentId];
+            const percentage = total > 0 ? (present / total) * 100 : 0;
+            percentages.push(percentage);
+        }
+
+        const averageAttendance =
+            percentages.length > 0
+                ? (percentages.reduce((sum, val) => sum + val, 0) / percentages.length).toFixed(2)
+                : '0.00';
+
+        // Step 3: Return dashboard data including attendance
         res.status(200).json({
             success: true,
             totalStudents: totalStudentsSet.size,
             totalClasses: classes.length,
             nextStudent: nextStudent || null,
-            students: allStudents
+            students: allStudents,
+            averageAttendance: `${averageAttendance}%`
         });
 
     } catch (error) {
@@ -287,41 +326,60 @@ export const getD = async (req, res) => {
     const { teacherId } = req.params;
 
     try {
-        // 1. Get all attendance records with teacherId via populated class
+        // Step 1: Get all attendance records with teacherId via populated class
         const allAttendances = await Attendance.find()
             .populate({
                 path: 'classId',
                 select: 'teacherId'
             });
 
-        // 2. Filter attendances by teacherId
+        // Step 2: Filter attendances by teacherId
         const filteredAttendances = allAttendances.filter(att =>
             att.classId?.teacherId?.toString() === teacherId
         );
-        console.log(filteredAttendances.length)
-        // 3. Accumulate total and present counts
-        let totalRecords = 0;
-        let totalPresent = 0;
+
+        // Step 3: Prepare student-wise attendance map
+        const studentStats = {}; // { studentId: { present: x, total: y } }
 
         filteredAttendances.forEach(att => {
             att.records.forEach(record => {
-                totalRecords += 1;
-                if (record.status === 'Present') totalPresent += 1;
+                const studentId = record.studentId.toString();
+                if (!studentStats[studentId]) {
+                    studentStats[studentId] = { present: 0, total: 0 };
+                }
+
+                studentStats[studentId].total += 1;
+                if (record.status === 'Present') {
+                    studentStats[studentId].present += 1;
+                }
             });
         });
 
-        // 4. Calculate overall present percentage
-        const progress = totalRecords > 0 ? ((totalPresent / totalRecords) * 100).toFixed(2) : '0.00';
+        // Step 4: Calculate percentage for each student
+        const percentages = [];
+        for (const studentId in studentStats) {
+            const { present, total } = studentStats[studentId];
+            const percentage = total > 0 ? (present / total) * 100 : 0;
+            percentages.push(percentage);
+        }
+
+        // Step 5: Calculate average percentage of all students
+        const average =
+            percentages.length > 0
+                ? (percentages.reduce((sum, val) => sum + val, 0) / percentages.length).toFixed(2)
+                : '0.00';
 
         res.status(200).json({
             success: true,
-            totalStudentsMarked: totalRecords,
-            totalPresent,
-            progress: `${progress}%`
+            totalStudents: percentages.length,
+            averagePercentage: `${average}%`,
+            individualPercentages: percentages.map(p => `${p.toFixed(2)}%`)
         });
 
     } catch (error) {
+        console.error(error);
         res.status(500).json({ success: false, message: "Something went wrong", error });
     }
 };
+
 
