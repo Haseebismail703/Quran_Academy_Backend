@@ -1,4 +1,4 @@
-import TecaherNotification from "../model/techerNotificationModel.js";
+import ClassNotication from "../model/ClassNoticationModel.js";
 import Class from '../model/classModel.js'
 import { sendNotify } from "../utils/sendNotify.js";
 import { io } from "../Socket/SocketConfiq.js";
@@ -7,7 +7,7 @@ import User from "../model/authModel.js";
 // Get all notifications
 export const getAllNotifications = async (req, res) => {
   try {
-    const notifications = await TecaherNotification.find().sort({ createdAt: -1 });
+    const notifications = await ClassNotication.find().sort({ createdAt: -1 })
     res.status(200).json(notifications);
   } catch (error) {
     console.error("Error fetching notifications:", error);
@@ -19,7 +19,7 @@ export const getAllNotifications = async (req, res) => {
 export const getNotificationsByClass = async (req, res) => {
   const { classId } = req.params;
   try {
-    const notifications = await TecaherNotification.find({ classId }).sort({ createdAt: -1 });
+    const notifications = await ClassNotication.find({ classId }).sort({ createdAt: -1 });
     res.status(200).json(notifications);
   } catch (error) {
     console.error("Error fetching class notifications:", error);
@@ -40,7 +40,7 @@ export const createClassNotification = async (req, res) => {
   let getStudentId = findClass.students.map(ids => ids.studentId);
 
   try {
-    const newNotification = new TecaherNotification({
+    const newNotification = new ClassNotication({
       title,
       message,
       expiryDate,
@@ -84,7 +84,7 @@ export const deleteNotification = async (req, res) => {
   const { id } = req.params;
 
   try {
-    const deleted = await TecaherNotification.findByIdAndDelete(id);
+    const deleted = await ClassNotication.findByIdAndDelete(id);
 
     if (!deleted) {
       return res.status(404).json({ error: "Notification not found" });
@@ -101,7 +101,7 @@ export const deleteNotification = async (req, res) => {
 export let getClassNotification = async (req, res) => {
   try {
     const currentDate = new Date();
-    const notifications = await TecaherNotification.find({
+    const notifications = await ClassNotication.find({
       expiryDate: { $gt: currentDate }
     });
     res.status(200).json(notifications);

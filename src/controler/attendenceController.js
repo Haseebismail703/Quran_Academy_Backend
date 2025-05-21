@@ -160,10 +160,6 @@ export const getAllAttendance = async (req, res) => {
             date
         }).populate('records.studentId', 'firstName lastName email gender');
 
-        if (!attendanceRecords || attendanceRecords.length === 0) {
-            return res.status(404).json({ message: "No attendance records found for this class and date." });
-        }
-
         res.status(200).json(attendanceRecords);
     } catch (error) {
         console.error("Fetch Attendance Error:", error);

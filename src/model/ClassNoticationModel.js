@@ -6,8 +6,8 @@ const classNotification = new mongoose.Schema({
   message: { type: String, required: true },
   createdAt: { type: Date, default: Date.now },
   expiryDate: { type: Date, required: true }, // 👈 NEW FIELD
-  classId: { type: mongoose.Schema.Types.ObjectId, ref: "Classes" },
+  classId: { type: mongoose.Schema.Types.ObjectId, ref: "Class" },
 });
 
-const TecaherNotification = mongoose.model("ClassNotication", classNotification);
-export default TecaherNotification;
+const ClassNotication = mongoose.model("ClassNotication", classNotification);
+export default ClassNotication;

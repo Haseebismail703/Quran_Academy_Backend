@@ -11,7 +11,7 @@ import multer from 'multer'
 import { getAllAttendance, getStudentAttendanceHistory, getStudentAttendence, markAttendance, updateAttendance } from "../controler/attendenceController.js";
 import { adminAllUserInchat, getMessage, getStudentsInChat, getTeacherInTheChat, message } from "../controler/chatController.js";
 import { createNotification, deleteNoti, getAllNotification, getNotificationsForUser, markNotificationAsRead } from "../controler/notificationController.js";
-import { createClassNotification, deleteNotification, getAllNotifications, getClassNotification, getNotificationsByClass } from "../controler/teacherNotification.js";
+import { createClassNotification, deleteNotification, getAllNotifications, getClassNotification, getNotificationsByClass } from "../controler/ClassNotication.js";
 import {  checkAndGenerateVoucher, createRecipe,  getLatestVoucher, updateRecipeImage,  updateVoucherStatus } from "../controler/voucherController.js";
 import { getNotify, markAllAsRead } from "../utils/sendNotify.js";
 const router = express.Router();
@@ -98,7 +98,7 @@ router.get('/getAllNotification',getAllNotification)
 router.put("/noti/read/:id", markNotificationAsRead);
 router.delete('/deleteNoti/:id',deleteNoti)
 
-// teacher Notification
+// class Notification
 router.get('/getAllClassNotification', getAllNotifications);
 router.get('/classNotification/:classId', getNotificationsByClass);
 router.post('/createClassNotification', createClassNotification);

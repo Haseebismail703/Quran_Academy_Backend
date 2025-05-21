@@ -23,13 +23,33 @@ export let createCourse = async (req, res) => {
 // get all Courses in admin panel
 export let getAllCourses = async (req, res) => {
   try {
-    const Courses = await Course.find()
-    res.status(200).json({ Courses });
+    const Courses = await Course.find();
+    const Classes = await Class.find().populate("students.studentId");
+
+    // Prepare final result with student counts
+    const coursesWithStudentCounts = Courses.map(course => {
+      // Filter classes belonging to this course
+      const relatedClasses = Classes.filter(cls => String(cls.courseId) === String(course._id));
+
+      let totalStudents = 0;
+      relatedClasses.forEach(cls => {
+        totalStudents += cls.students.length;
+      });
+
+      return {
+        ...course._doc,
+        totalStudents
+      };
+    });
+
+    res.status(200).json({ courses: coursesWithStudentCounts });
+
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: error.message });
   }
-}
+};
+
 // delete course 
 export let deleteCourse = async (req, res) => {
   const { courseId } = req.params;

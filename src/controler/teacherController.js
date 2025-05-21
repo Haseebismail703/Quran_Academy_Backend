@@ -67,7 +67,7 @@ export const addFile = async (req, res) => {
                 const stream = cloudinary.uploader.upload_stream(
                     {
                         resource_type: type === 'pdf' ? 'raw' : 'image',
-                        folder: type === 'pdf' ? 'pdfs' : 'images',
+                        folder: type === 'pdf' ? 'pdf' : 'images',
                     },
                     (error, result) => {
                         if (result) resolve(result);
