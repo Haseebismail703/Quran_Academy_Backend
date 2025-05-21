@@ -59,6 +59,23 @@ export let createRecipe = async (req, res) => {
     });
   }
 };
+const calculateFullMonthsDifference = (startDate, endDate) => {
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+
+  let months =
+    (end.getFullYear() - start.getFullYear()) * 12 +
+    (end.getMonth() - start.getMonth());
+
+  // If day of end < start, don't count this as a full month yet
+  if (end.getDate() < start.getDate()) {
+    months -= 1;
+  }
+
+  return Math.max(0, months);
+};
+
+
 
 export const checkAndGenerateVoucher = async (req, res) => {
   try {
@@ -71,14 +88,10 @@ export const checkAndGenerateVoucher = async (req, res) => {
       });
     }
 
-    // Get today's date and reset hours, minutes, seconds to compare just the date
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    // Find all active packages for the student
-    const studentPackages = await Package.find({
-      studentId,
-    });
+    const studentPackages = await Package.find({ studentId });
 
     if (!studentPackages || studentPackages.length === 0) {
       return res.status(404).json({
@@ -87,50 +100,50 @@ export const checkAndGenerateVoucher = async (req, res) => {
       });
     }
 
-    // Check for packages where month-end has been reached or passed
-    const packagesDueForVoucher = studentPackages.filter(pkg => {
-      // Skip packages with invalid monthEnd dates
-      if (!pkg.monthEnd || pkg.monthEnd.getTime() === new Date(0).getTime()) {
-        return false;
+    const calculateFullMonthsDifference = (startDate, endDate) => {
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+
+      let months =
+        (end.getFullYear() - start.getFullYear()) * 12 +
+        (end.getMonth() - start.getMonth());
+
+      if (end.getDate() < start.getDate()) {
+        months -= 1;
       }
 
-      const monthEnd = new Date(pkg.monthEnd);
-      monthEnd.setHours(0, 0, 0, 0);
+      return Math.max(0, months);
+    };
 
-      // Check if monthEnd is today or in the past
-      return monthEnd <= today;
-    });
-
-    // Generate new vouchers for eligible packages
     const newVouchers = [];
-    const currentMonth = today.getMonth();
-    const currentYear = today.getFullYear();
 
-    for (const pkg of packagesDueForVoucher) {
-      // Check if there's already a voucher for this month
-      const startOfMonth = new Date(currentYear, currentMonth, 1);
-      const endOfMonth = new Date(currentYear, currentMonth + 1, 0); // Last day of current month
+    for (const pkg of studentPackages) {
+      if (!pkg.monthEnd || pkg.monthEnd.getTime() === new Date(0).getTime()) continue;
+
+      const missedMonths = calculateFullMonthsDifference(pkg.monthEnd, today);
+
+      if (missedMonths <= 0) continue;
 
       const existingVoucher = await Voucher.findOne({
         packageId: pkg._id,
         studentId: pkg.studentId,
         createdAt: {
-          $gte: startOfMonth,
-          $lte: endOfMonth
+          $gte: new Date(today.getFullYear(), today.getMonth(), 1),
+          $lte: new Date(today.getFullYear(), today.getMonth() + 1, 0)
         }
       });
 
-      // Only create a new voucher if one doesn't exist for this month
       if (!existingVoucher) {
+        const totalFee = pkg.coursePrice * missedMonths;
+
         const newVoucher = new Voucher({
           packageId: pkg._id,
           courseId: pkg.courseId,
           studentId: pkg.studentId,
           status: "pending",
-          month: currentMonth + 1,
-          year: currentYear,
-          monthEnd: pkg.monthEnd,
-          fee: pkg.coursePrice
+          fee: totalFee,
+          pendingMonth: missedMonths,
+          monthEnd: new Date(today.getFullYear(), today.getMonth() + 1, pkg.monthEnd.getDate())
         });
 
         const savedVoucher = await newVoucher.save();
@@ -138,7 +151,6 @@ export const checkAndGenerateVoucher = async (req, res) => {
       }
     }
 
-    // Get all vouchers for this student (including newly created ones)
     const allVouchers = await Voucher.find({ studentId })
       .populate('packageId', 'packageName coursePrice')
       .populate('courseId', 'courseName')
@@ -147,13 +159,12 @@ export const checkAndGenerateVoucher = async (req, res) => {
     return res.status(200).json({
       success: true,
       message: newVouchers.length > 0
-        ? `${newVouchers.length} new voucher(s) generated`
-        : 'No new voucher needed',
+        ? `${newVouchers.length} new combined voucher(s) generated`
+        : 'No voucher needed',
       data: {
         vouchers: allVouchers,
         newlyCreated: newVouchers,
-        packagesChecked: studentPackages.length,
-        packagesDue: packagesDueForVoucher.length
+        packagesChecked: studentPackages.length
       }
     });
 
@@ -167,6 +178,9 @@ export const checkAndGenerateVoucher = async (req, res) => {
     });
   }
 };
+
+
+
 
 export const getLatestVoucher = async (req, res) => {
 
@@ -263,12 +277,13 @@ export const updateRecipeImage = async (req, res) => {
 
 // update recipe  status and package update 
 export const updateVoucherStatus = async (req, res) => {
-  const { studentId, courseId, status, voucherId, adminId } = req.body;
-  // console.log(req.body)
+  const { studentId, courseId, status, voucherId, packageId ,adminId} = req.body;
+  console.log("req body",req.body)
   try {
 
     // notify the student 
     let feeText = status === "approved" ? '✅ Fee received. Thank you!' : "⚠️ fee rejected. Contact admin."
+  
     let notify = async () => {
       await sendNotify({
         senderId: adminId,
@@ -331,7 +346,7 @@ export const updateVoucherStatus = async (req, res) => {
         (cls) => cls.courseId.toString() === courseId && cls.status === 'join'
       );
 
-      if (!alreadyJoined) {
+      if (!alreadyJoined ) {
         student.classes.push({
           teacherId: null,
           courseId,
@@ -340,17 +355,15 @@ export const updateVoucherStatus = async (req, res) => {
       }
 
       // Update package info
-      const updatedPackage = await Package.findOneAndUpdate(
-        { studentId, courseId },
+      const updatedPackage = await Package.findByIdAndUpdate(
+        packageId,
         {
           monthStart: startDate,
           monthEnd: endDate,
           paymentStatus: 'completed',
-          status: 'approved',
         },
         { new: true }
       );
-
       if (!updatedPackage) {
         return res.status(404).json({ message: "Package not found" });
       }

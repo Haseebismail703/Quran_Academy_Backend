@@ -4,13 +4,14 @@ import Course from '../model/courseModel.js'
 import cloudinary from "../confiq/cloudinary.js";
 import { sendNotify } from "../utils/sendNotify.js";
 import { io } from "../Socket/SocketConfiq.js";
+import Voucher from "../model/voucherModel.js";
 
 
 // create a new package
 const createPackage = async (req, res) => {
   // console.log("create package", req.body)
   try {
-    const { packageName, coursePrice, classPerMonth, classPerWeek, classType, sessionDuration, studentId, courseId ,adminId} = req.body;
+    const { packageName, coursePrice, classPerMonth, classPerWeek, classType, sessionDuration, studentId, courseId, adminId } = req.body;
     // check student id is valid
     const user = await User.findById(studentId);
     if (!user) {
@@ -37,8 +38,18 @@ const createPackage = async (req, res) => {
         senderId: adminId,
         receiverId: [studentId],
         message: "📦 Your package is ready.",
-        path : "/student/fee"
+        path: "/student/fee"
       }, io);
+      // create voucher for first time
+      const newVoucher = new Voucher({
+        packageId: newPackage._id,
+        courseId: newPackage.courseId,
+        studentId: newPackage.studentId,
+        status: "pending",
+        monthEnd: newPackage.monthEnd,
+        fee: newPackage.coursePrice
+      });
+      await newVoucher.save();
     }
     res.status(200).json({ message: "Package created successfully", data: newPackage });
   } catch (error) {

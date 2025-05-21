@@ -18,7 +18,7 @@ const voucherSchema = new mongoose.Schema({
   },
   recipeUrl: {
     type: String,
-    default : ''
+    default: ''
   },
   publicId: {
     type: String,
@@ -28,12 +28,19 @@ const voucherSchema = new mongoose.Schema({
     enum: ['pending', 'approved', 'rejected'],
     default: 'pending',
   },
-  feePaidDate : {
-    type : Date,
+  feePaidDate: {
+    type: Date,
   },
-  fee : {
-    type : Number,
-    default : 0
+  fee: {
+    type: Number,
+    default: 0
+  },
+  pendingMonth: {
+    type: String, 
+  },
+  monthEnd: {
+    type: String,
+    required: true,
   },
   createdAt: {
     type: Date,
