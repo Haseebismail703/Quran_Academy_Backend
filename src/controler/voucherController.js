@@ -59,22 +59,6 @@ export let createRecipe = async (req, res) => {
     });
   }
 };
-const calculateFullMonthsDifference = (startDate, endDate) => {
-  const start = new Date(startDate);
-  const end = new Date(endDate);
-
-  let months =
-    (end.getFullYear() - start.getFullYear()) * 12 +
-    (end.getMonth() - start.getMonth());
-
-  // If day of end < start, don't count this as a full month yet
-  if (end.getDate() < start.getDate()) {
-    months -= 1;
-  }
-
-  return Math.max(0, months);
-};
-
 
 
 export const checkAndGenerateVoucher = async (req, res) => {
@@ -91,6 +75,7 @@ export const checkAndGenerateVoucher = async (req, res) => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
+    // All packages for student
     const studentPackages = await Package.find({ studentId });
 
     if (!studentPackages || studentPackages.length === 0) {
@@ -100,20 +85,23 @@ export const checkAndGenerateVoucher = async (req, res) => {
       });
     }
 
+    // Function to calculate full months between two dates
     const calculateFullMonthsDifference = (startDate, endDate) => {
       const start = new Date(startDate);
       const end = new Date(endDate);
 
-      let months =
-        (end.getFullYear() - start.getFullYear()) * 12 +
-        (end.getMonth() - start.getMonth());
+      let yearDiff = end.getFullYear() - start.getFullYear();
+      let monthDiff = end.getMonth() - start.getMonth();
+      let totalMonths = yearDiff * 12 + monthDiff;
 
-      if (end.getDate() < start.getDate()) {
-        months -= 1;
+      // If the end date's day is >= start date's day, count the current month too
+      if (end.getDate() >= start.getDate()) {
+        totalMonths += 1;
       }
 
-      return Math.max(0, months);
+      return Math.max(0, totalMonths);
     };
+
 
     const newVouchers = [];
 
@@ -124,6 +112,7 @@ export const checkAndGenerateVoucher = async (req, res) => {
 
       if (missedMonths <= 0) continue;
 
+      // Check if voucher already exists for current month
       const existingVoucher = await Voucher.findOne({
         packageId: pkg._id,
         studentId: pkg.studentId,
@@ -136,6 +125,10 @@ export const checkAndGenerateVoucher = async (req, res) => {
       if (!existingVoucher) {
         const totalFee = pkg.coursePrice * missedMonths;
 
+        // Calculate the last missed month's end date
+        const lastMissedMonthDate = new Date(pkg.monthEnd);
+        lastMissedMonthDate.setMonth(lastMissedMonthDate.getMonth() + missedMonths);
+
         const newVoucher = new Voucher({
           packageId: pkg._id,
           courseId: pkg.courseId,
@@ -143,7 +136,7 @@ export const checkAndGenerateVoucher = async (req, res) => {
           status: "pending",
           fee: totalFee,
           pendingMonth: missedMonths,
-          monthEnd: new Date(today.getFullYear(), today.getMonth() + 1, pkg.monthEnd.getDate())
+          monthEnd: lastMissedMonthDate
         });
 
         const savedVoucher = await newVoucher.save();
@@ -159,7 +152,7 @@ export const checkAndGenerateVoucher = async (req, res) => {
     return res.status(200).json({
       success: true,
       message: newVouchers.length > 0
-        ? `${newVouchers.length} new combined voucher(s) generated`
+        ? `${newVouchers.length} new voucher(s) generated`
         : 'No voucher needed',
       data: {
         vouchers: allVouchers,
@@ -178,6 +171,7 @@ export const checkAndGenerateVoucher = async (req, res) => {
     });
   }
 };
+
 
 
 
@@ -205,7 +199,7 @@ export const getLatestVoucher = async (req, res) => {
 };
 
 export const updateRecipeImage = async (req, res) => {
-  const { recipeId,studentId } = req.body;
+  const { recipeId, studentId } = req.body;
   const file = req.file;
 
   if (!file) {
@@ -251,14 +245,14 @@ export const updateRecipeImage = async (req, res) => {
     await latestVoucher.save();
 
 
-    if(uploadResult){
-      let getUser = await User.find({role : "admin"})
-      let adminId = getUser.map(ids=> ids._id)
+    if (uploadResult) {
+      let getUser = await User.find({ role: "admin" })
+      let adminId = getUser.map(ids => ids._id)
       const notify = await sendNotify({
         senderId: studentId,
         receiverId: [adminId],
         message: "💰 Fee has been submitted by the student.",
-        path : "/admin/allvoucher"
+        path: "/admin/allvoucher"
       }, io);
     }
     res.status(200).json({
@@ -277,19 +271,19 @@ export const updateRecipeImage = async (req, res) => {
 
 // update recipe  status and package update 
 export const updateVoucherStatus = async (req, res) => {
-  const { studentId, courseId, status, voucherId, packageId ,adminId} = req.body;
-  console.log("req body",req.body)
+  const { studentId, courseId, status, voucherId, packageId, adminId } = req.body;
+  console.log("req body", req.body)
   try {
 
     // notify the student 
     let feeText = status === "approved" ? '✅ Fee received. Thank you!' : "⚠️ fee rejected. Contact admin."
-  
+
     let notify = async () => {
       await sendNotify({
         senderId: adminId,
         receiverId: [studentId],
         message: feeText,
-        path : "/student/feevoucher"
+        path: "/student/feevoucher"
       }, io);
     }
 
@@ -346,7 +340,7 @@ export const updateVoucherStatus = async (req, res) => {
         (cls) => cls.courseId.toString() === courseId && cls.status === 'join'
       );
 
-      if (!alreadyJoined ) {
+      if (!alreadyJoined) {
         student.classes.push({
           teacherId: null,
           courseId,
