@@ -559,7 +559,6 @@ export let createCareer = async (req, res) => {
     // Save the career
     await career.save();
 
-    // Respond with the created career data
     return res.status(200).json(career);
   } catch (error) {
     // Catch any errors and return them

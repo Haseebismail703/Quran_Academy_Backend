@@ -9,9 +9,9 @@ configDotenv()
 // user signup api
 
 const signupUser = async (req, res) => {
+    // console.log(req.body)
     try {
-        const { firstName, email, role } = req.body;
-
+        const { firstName, lastName, email, role } = req.body;
         // Check if user already exists
         const existingUser = await User.findOne({ email });
         if (existingUser) {
@@ -26,8 +26,8 @@ const signupUser = async (req, res) => {
         let generatedPassword;
         let isPasswordUnique = false;
 
-        // Ensure the generated password is unique
-        while (!isPasswordUnique) {
+        //  generated password is unique
+        while (!isPasswordUnique) { 
             generatedPassword = crypto.randomBytes(4).toString("hex");
             const passwordExists = await User.findOne({ password: generatedPassword });
             if (!passwordExists) {
@@ -39,15 +39,15 @@ const signupUser = async (req, res) => {
         const hashedPassword = await bcrypt.hash(generatedPassword, 10);
 
         // Create user
-        const newUser = new User({ firstName, email, password: hashedPassword, role });
+        const newUser = new User({ firstName, lastName, email, password: hashedPassword, role });
         await newUser.save();
 
-        // Prepare minimal user data to include in the JWT payload
         const user_data = {
             email: newUser.email,
             id: newUser._id,
             firstName: newUser.firstName,
-            role: newUser.role || 'user'
+            lastName: newUser.lastName,
+            role: newUser.role
         };
 
         // Generate JWT token
@@ -55,7 +55,7 @@ const signupUser = async (req, res) => {
 
         // Set the JWT token in a cookie
         res.cookie('token', token, {
-            httpOnly: true, // To prevent client-side access to the cookie
+            httpOnly: true, 
             secure: process.env.NODE_ENV === 'production',
             maxAge: 60 * 60 * 1000, // 1 hour
         });
@@ -82,7 +82,7 @@ const signupUser = async (req, res) => {
 `;
         await sendEmail(email, subject, message);
 
-        res.status(200).json({ message: "User registered, password sent to email", token });
+        res.status(200).json({ message: "password sent to youre email", token, user_data });
     } catch (error) {
         console.error("Signup Error:", error);
         res.status(500).json({ message: error.message });
@@ -91,6 +91,7 @@ const signupUser = async (req, res) => {
 // signin api 
 let signinUser = async (req, res) => {
     const { email, password } = req.body;
+    console.log(req.body)
     try {
         // Find user by email and exclude password from returned document
         const user = await User.findOne({ email });
@@ -99,6 +100,7 @@ let signinUser = async (req, res) => {
             return res.status(400).send({ status: 400, message: "Invalid credentials" });
         }
 
+        
         // Compare provided password with stored hashed password
         const match = await bcrypt.compare(password, user.password);
 
@@ -106,12 +108,7 @@ let signinUser = async (req, res) => {
             return res.status(400).send({ status: 400, message: "Invalid credentials" });
         }
 
-        // Check if user role is user
-        if (user.role !== 'user') {
-            return res.status(403).send({ status: 403, message: "Invalid email or password" });
-        }
-
-        // Prepare minimal user data to include in the JWT payload
+      
         const user_data = {
             email: user.email,
             id: user._id,
@@ -133,7 +130,6 @@ let signinUser = async (req, res) => {
         return res.status(200).send({ status: 200, message: "Login successful", user_data, token });
 
     } catch (error) {
-        // Handle any errors
         console.log(error);
         res.status(500).send({ status: 500, message: "Internal server error", error: error.message });
     }
@@ -194,7 +190,7 @@ const updateUser = async (req, res) => {
     // console.log('Update user:', req.file); // Check if file is being received
 
     try {
-        const { firstName, lastName } = req.body; // Removed password-related fields
+        const { firstName, lastName ,gender} = req.body; // Removed password-related fields
         const { userId } = req.params;
         const file = req.file;
 
@@ -206,18 +202,17 @@ const updateUser = async (req, res) => {
         if (
             firstName &&
             lastName &&
-            user.firstName === firstName &&
-            user.lastName === lastName
+            user.firstName === firstName 
         ) {
             return res
                 .status(400)
-                .json({ message: 'First name and last name already exist' });
+                .json({ message: 'First name  already exist' });
         }
 
         // Update only the provided fields
         if (firstName) user.firstName = firstName;
         if (lastName) user.lastName = lastName;
-
+        if(gender) user.gender = gender
         // Upload image if provided
         if (file) {
             const uploadResult = await new Promise((resolve, reject) => {
@@ -254,59 +249,59 @@ const updateUser = async (req, res) => {
 
 // update password
 const updatePassword = async (req, res) => {
-    console.log(req.params,req.body)
+    console.log(req.params, req.body)
     try {
-      const { userId } = req.params;
-      const { currentPassword, newPassword } = req.body;
-  
-      // Check if the current password and new password are provided
-      if (!currentPassword || !newPassword) {
-        return res.status(400).json({
-          message: 'Both current password and new password are required',
-        });
-      }
-  
-      // Find user
-      const user = await User.findById(userId);
-      if (!user) return res.status(404).json({ message: 'User not found' });
-  
-      // Log current password and stored password
-      console.log('Current Password:', currentPassword); // Log the current password from the request
-      console.log('Stored Password:', user.password); // Log the stored password from the database
-  
-      // Check if current password matches the stored password
-      const isMatch = await bcrypt.compare(currentPassword, user.password);
-      if (!isMatch) {
-        return res.status(401).json({ message: 'Current password is incorrect' });
-      }
-  
-      // Check if new password is different from the current one
-      if (newPassword === currentPassword) {
-        return res.status(400).json({
-          message: 'New password cannot be the same as current password',
-        });
-      }
-  
-      // Hash the new password
-      const hashedNewPassword = await bcrypt.hash(newPassword, 10); // 10 salt rounds
-      user.password = hashedNewPassword;
-  
-      // Save the updated user data
-      await user.save();
-  
-      res.status(200).json({ message: 'Password updated successfully' });
+        const { userId } = req.params;
+        const { currentPassword, newPassword } = req.body;
+
+        // Check if the current password and new password are provided
+        if (!currentPassword || !newPassword) {
+            return res.status(400).json({
+                message: 'Both current password and new password are required',
+            });
+        }
+
+        // Find user
+        const user = await User.findById(userId);
+        if (!user) return res.status(404).json({ message: 'User not found' });
+
+        // Log current password and stored password
+        console.log('Current Password:', currentPassword); // Log the current password from the request
+        console.log('Stored Password:', user.password); // Log the stored password from the database
+
+        // Check if current password matches the stored password
+        const isMatch = await bcrypt.compare(currentPassword, user.password);
+        if (!isMatch) {
+            return res.status(401).json({ message: 'Current password is incorrect' });
+        }
+
+        // Check if new password is different from the current one
+        if (newPassword === currentPassword) {
+            return res.status(400).json({
+                message: 'New password cannot be the same as current password',
+            });
+        }
+
+        // Hash the new password
+        const hashedNewPassword = await bcrypt.hash(newPassword, 10); // 10 salt rounds
+        user.password = hashedNewPassword;
+
+        // Save the updated user data
+        await user.save();
+
+        res.status(200).json({ message: 'Password updated successfully' });
     } catch (error) {
-      console.error('Password Update Error:', error);
-      res.status(500).json({ message: 'Internal server error', error: error.message });
+        console.error('Password Update Error:', error);
+        res.status(500).json({ message: 'Internal server error', error: error.message });
     }
-  };
-  
+};
+
 // get profile using id 
-let getProfile = async(req,res) =>{
-    const {userId} = req.params
+let getProfile = async (req, res) => {
+    const { userId } = req.params
     try {
         let user = await User.findById(userId)
-        return  res.status(200).json(user);
+        return res.status(200).json(user);
     } catch (error) {
         console.error("Logout Error:", error);
         res.status(500).json({ message: "Internal server error" });
@@ -352,4 +347,4 @@ let updateStatusAndFirstName = async (req, res) => {
 };
 
 
-export { signupUser, signinUser, adminLogin, updateUser, logOut, updateStatusAndFirstName ,updatePassword,getProfile};
+export { signupUser, signinUser, adminLogin, updateUser, logOut, updateStatusAndFirstName, updatePassword, getProfile };

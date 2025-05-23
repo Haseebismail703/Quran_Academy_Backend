@@ -19,9 +19,6 @@ export const getAllClassesByStudentId = async (req, res) => {
     .populate('courseId', 'courseName') // populate only courseName from course
     .populate('teacherId', 'firstName gender profileUrl'); // populate teacher info
     
-    if (!classes.length) {
-      return res.status(404).json({ message: "No classes found for this student" });
-    }
 
     res.status(200).json(classes);
   } catch (error) {

@@ -110,7 +110,7 @@ router.post('/createRecipe',upload.single('file'),createRecipe)
 router.get('/getLatestVoucher', getLatestVoucher);
 router.put('/recipe/update', upload.single('file'), updateRecipeImage);
 router.put('/updateVoucherStatus',updateVoucherStatus)
-router.get('/generate-voucher/:studentId/:courseId/:packageId', checkAndGenerateVoucher);
+router.get('/generate-voucher/:studentId', checkAndGenerateVoucher);
 
 // Notify
 router.get('/getNotify/:receiverId' , getNotify)

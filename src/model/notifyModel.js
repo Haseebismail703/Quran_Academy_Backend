@@ -4,7 +4,7 @@ const notify = new mongoose.Schema({
     senderId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Users',
-        required: true
+        // required: true
     },
     receiverId: [{
         type: mongoose.Schema.Types.ObjectId,

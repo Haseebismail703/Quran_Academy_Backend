@@ -78,12 +78,12 @@ export const checkAndGenerateVoucher = async (req, res) => {
     // All packages for student
     const studentPackages = await Package.find({ studentId });
 
-    if (!studentPackages || studentPackages.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'No active packages found for this student'
-      });
-    }
+    // if (!studentPackages || studentPackages.length === 0) {
+    //   return res.status(404).json({
+    //     success: false,
+    //     message: 'No active packages found for this student'
+    //   });
+    // }
 
     // Function to calculate full months between two dates
     const calculateFullMonthsDifference = (startDate, endDate) => {
@@ -162,12 +162,11 @@ export const checkAndGenerateVoucher = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error in checkAndGenerateVouchers:', error);
+    // console.error('Error in checkAndGenerateVouchers:', error);
     return res.status(500).json({
       success: false,
       message: 'Internal server error',
       error: error.message,
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
 };
